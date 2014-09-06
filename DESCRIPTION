@@ -1,0 +1,15 @@
+Package: funHDDC
+Type: Package
+Title: Model-based clustering in group-specific functional subspaces
+Version: 1.0
+Date: 2014-09-06
+Author: C. Bouveyron & J. Jacques
+Maintainer: Charles Bouveyron <charles.bouveyron@parisdescartes.fr>
+Depends: fda
+Description: The package provides the funHDDC algorithm (Bouveyron & Jacques, 2011) which allows to cluster functional data by modeling each group within a specific functional subspace. 
+License: GPL-2
+LazyLoad: yes
+Packaged: 2014-09-08 14:12:24 UTC; charles
+NeedsCompilation: no
+Repository: CRAN
+Date/Publication: 2014-09-08 19:15:54

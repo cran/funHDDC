@@ -1,2 +1,7 @@
-exportPattern("^[[:alpha:]]+")
-import(fda)
+exportPattern("^[^\\.]")
+import(fda, MASS)
+importFrom("graphics", "abline", "lines", "par", "plot", "points","text")
+importFrom("stats", "kmeans", "rmultinom")
+
+S3method(plot,mfpca)
+S3method(predict,funHDDC)

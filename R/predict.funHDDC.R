@@ -14,18 +14,73 @@ predict.funHDDC<-function(object,newdata,...){
 
   b[b<1e-6] <- 1e-6
 
-
-  K_pen <- matrix(0,K,N)
-  for (i in 1:K) {
+  if (model$model%in%("AKJBKQKDK")){
+    K_pen <- matrix(0,K,N)
+    for (i in 1:K) {
+      s <- sum(log(a[i,1:d[i]]))
+      X <- x - matrix(mu[i,], N, p, byrow=TRUE)
+      Qi = model$fpca[[i]]$W %*% Q[[i]]
+      proj <- (X%*%Qi)%*%t(Qi)
+      A <- (-proj)%*%Qi%*%sqrt(diag(1/a[i,1:d[i]],d[i]))
+      B <- X-proj
+      K_pen[i,] <- rowSums(A^2)+1/b[i]*rowSums(B^2)+s+(p-d[i])*log(b[i])-2*log(prop[i])+p*log(2*pi)
+    }
+  }else if (model$model%in%("AKJBQKDK")){
+    K_pen <- matrix(0,K,N)
+    for (i in 1:K) {
     s <- sum(log(a[i,1:d[i]]))
     X <- x - matrix(mu[i,], N, p, byrow=TRUE)
     Qi = model$fpca[[i]]$W %*% Q[[i]]
     proj <- (X%*%Qi)%*%t(Qi)
     A <- (-proj)%*%Qi%*%sqrt(diag(1/a[i,1:d[i]],d[i]))
     B <- X-proj
-    K_pen[i,] <- rowSums(A^2)+1/b[i]*rowSums(B^2)+s+(p-d[i])*log(b[i])-2*log(prop[i])+p*log(2*pi)
+    K_pen[i,] <- rowSums(A^2)+1/b[1]*rowSums(B^2)+s+(p-d[i])*log(b[1])-2*log(prop[i])+p*log(2*pi)
+    }
+  }else if (model$model%in%("ABQKDK")){
+    K_pen <- matrix(0,K,N)
+    for (i in 1:K) {
+      s <- sum(log(a[1]))
+      X <- x - matrix(mu[i,], N, p, byrow=TRUE)
+      Qi = model$fpca[[i]]$W %*% Q[[i]]
+      proj <- (X%*%Qi)%*%t(Qi)
+      A <- (-proj)%*%Qi%*%sqrt(diag(1/a[1],d[i]))
+      B <- X-proj
+      K_pen[i,] <- rowSums(A^2)+1/b[1]*rowSums(B^2)+s+(p-d[i])*log(b[1])-2*log(prop[i])+p*log(2*pi)
+    }
+  } else if (model$model%in%("AKBKQKDK")){
+    K_pen <- matrix(0,K,N)
+    for (i in 1:K) {
+      s <- sum(log(a[1,i]))
+      X <- x - matrix(mu[i,], N, p, byrow=TRUE)
+      Qi = model$fpca[[i]]$W %*% Q[[i]]
+      proj <- (X%*%Qi)%*%t(Qi)
+      A <- (-proj)%*%Qi%*%sqrt(diag(1/a[1,i],d[i]))
+      B <- X-proj
+      K_pen[i,] <- rowSums(A^2)+1/b[i]*rowSums(B^2)+s+(p-d[i])*log(b[i])-2*log(prop[i])+p*log(2*pi)
+    }
+  }else if(model$model%in%("ABKQKDK")){
+    K_pen <- matrix(0,K,N)
+    for (i in 1:K) {
+      s <- sum(log(a[1]))
+      X <- x - matrix(mu[i,], N, p, byrow=TRUE)
+      Qi = model$fpca[[i]]$W %*% Q[[i]]
+      proj <- (X%*%Qi)%*%t(Qi)
+      A <- (-proj)%*%Qi%*%sqrt(diag(1/a[1],d[i]))
+      B <- X-proj
+      K_pen[i,] <- rowSums(A^2)+1/b[i]*rowSums(B^2)+s+(p-d[i])*log(b[i])-2*log(prop[i])+p*log(2*pi)
+    }
+  }else if (model$model%in%("AKBQKDK")){
+    K_pen <- matrix(0,K,N)
+    for (i in 1:K) {
+      s <- sum(log(a[1,i]))
+      X <- x - matrix(mu[i,], N, p, byrow=TRUE)
+      Qi = model$fpca[[i]]$W %*% Q[[i]]
+      proj <- (X%*%Qi)%*%t(Qi)
+      A <- (-proj)%*%Qi%*%sqrt(diag(1/a[1,i],d[i]))
+      B <- X-proj
+      K_pen[i,] <- rowSums(A^2)+1/b[1]*rowSums(B^2)+s+(p-d[i])*log(b[1])-2*log(prop[i])+p*log(2*pi)
+    }
   }
-
   A <- -1/2*t(K_pen)
   L <- sum(log(rowSums(exp(A-apply(A,1,max))))+apply(A,1,max))
 

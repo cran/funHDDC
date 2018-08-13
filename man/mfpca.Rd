@@ -1,11 +1,11 @@
 \name{mfpca}
 \alias{mfpca}
-\title{Functional Principal Component Analysis for Univariate or Multivariate Functional Data}
+\title{Functional principal component analysis for univariate or multivariate functional data}
 \usage{
   mfpca(fdobj,center)
 }
 \description{
-  Functional principal component analysis allows to build a low-dimensional representation for univariate or multivariate functional data.
+  It provides functional principal component analysis for univariate or multivariate functional data.
 }
 \arguments{
   \item{fdobj}{For univariate FPCA: a functional data object produced by fd() function of fda package, for
@@ -21,14 +21,8 @@
   \item{meanfd}{a functional data object giving the mean function after centering (default) or the mean function of     raw data.}
 
 }
-\references{
-- C. Bouveyron and J. Jacques, Model-based Clustering of Time Series in Group-specific Functional Subspaces, Advances in Data Analysis and Classification, vol. 5 (4), pp. 281-300, 2011.
-- A. Schmutz, C. Bouveyron, J. Jacques, L. Cheze and  P. Martin, Clustering multivariate functional data in group-specic functional subspaces, Preprint HAL 01652467, Université Côte d'Azur, 2017.
-}
 \examples{
-  library(fda)
-
-  ####Univariate case: "Canadian temperature" data (Ramsey & Silverman)
+  ## Univariate case: "Canadian temperature" data (Ramsey & Silverman)
   daybasis65 <- create.fourier.basis(c(0, 365), nbasis=65, period=365)
   daytempfd <- smooth.basis(day.5, CanadianWeather$dailyAv[,,"Temperature.C"], daybasis65,
                                   fdnames=list("Day", "Station", "Deg C"))$fd
@@ -37,7 +31,7 @@
   plot.mfpca(res.pca)
 
 
-  ####Multivariate case: "Canadian temperature" data (Ramsey & Silverman)
+  ## Multivariate case: "Canadian temperature" data (Ramsey & Silverman)
   daybasis65 <- create.fourier.basis(c(0, 365), nbasis=65, period=365)
   daytempfd <- smooth.basis(day.5, CanadianWeather$dailyAv[,,"Temperature.C"], daybasis65,
                                   fdnames=list("Day", "Station", "Deg C"))$fd

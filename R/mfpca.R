@@ -2,137 +2,77 @@ mfpca <- function(fdobj,center=TRUE){
   call = match.call()
   if (class(fdobj)=="list"){
 
-    if (length(fdobj)>2) {
-      #save object before center data
-      mean_fd<-list()
-      for (i in 1:length(fdobj)){
-        mean_fd[[i]]<-fdobj[[i]]
-      }
+    #save object before center data
+    mean_fd<-list()
+    for (i in 1:length(fdobj)){
+      mean_fd[[i]]<-fdobj[[i]]
+    }
 
-      #center each functional dataset
-      if (isTRUE(center)){
+    #center each functional dataset
+    if (isTRUE(center)){
       for (i in 1:length(fdobj)){
         coefmean <- apply(fdobj[[i]]$coefs, 1, mean)
         fdobj[[i]]$coefs <- sweep(fdobj[[i]]$coefs, 1, coefmean)
         mean_fd[[i]]$coefs = as.matrix(data.frame(mean=coefmean))
       }
-      }
+    }
 
-      #Calculate W for each dataset, matrix of basis functions inner product
-      for (i in 1:length(fdobj)){
-        name<-paste('W_var',i,sep='')
-        W_fdobj<-inprod(fdobj[[i]]$basis,fdobj[[i]]$basis)
-        assign(name,W_fdobj)
-      }
+    #Calculate W for each dataset, matrix of basis functions inner product
+    for (i in 1:length(fdobj)){
+      name<-paste('W_var',i,sep='')
+      W_fdobj<-inprod(fdobj[[i]]$basis,fdobj[[i]]$basis)
+      assign(name,W_fdobj)
+    }
 
-      #Addition of 0 before merging all matrices into \phi (cf. Publication)
-      prow<-dim(W_fdobj)[[1]]
-      pcol<-length(fdobj)*prow
-      W1<-cbind(W_fdobj,matrix(0,nrow=prow,ncol=(pcol-ncol(W_fdobj))))
-      W_list<-list()
-      for (i in 2:(length(fdobj))){
-        W2<-cbind(matrix(0,nrow=prow,ncol=(i-1)*ncol(W_fdobj)),get(paste('W_var',i,sep='')),matrix(0,nrow=prow,ncol=(pcol-i*ncol(W_fdobj))))
-        W_list[[i-1]]<-W2
-      }
+    #Addition of 0 before merging all matrices into \phi (cf. Publication)
+    prow<-dim(W_fdobj)[[1]]
+    pcol<-length(fdobj)*prow
+    W1<-cbind(W_fdobj,matrix(0,nrow=prow,ncol=(pcol-ncol(W_fdobj))))
+    W_list<-list()
+    for (i in 2:(length(fdobj))){
+      W2<-cbind(matrix(0,nrow=prow,ncol=(i-1)*ncol(W_fdobj)),get(paste('W_var',i,sep='')),matrix(0,nrow=prow,ncol=(pcol-i*ncol(W_fdobj))))
+      W_list[[i-1]]<-W2
+    }
 
-      #Creation of \phi
-      W_tot<-rbind(W1,W_list[[1]])
+    #Creation of \phi
+    W_tot<-rbind(W1,W_list[[1]])
+    if (length(fdobj)>2){
       for(i in 2:(length(fdobj)-1)){
         W_tot<-rbind(W_tot,W_list[[i]])
       }
-      #To avoid numerical issues, the smallest inner product are set to 0
-      W_tot[W_tot<1e-15]=0
-
-      #Creation of C, the coefficients matrix
-      coef<-t(fdobj[[1]]$coefs)
-      for (i in 2:length(fdobj)){
-        coef<-cbind(coef,t(fdobj[[i]]$coefs))
-      }
-
-      mat_interm<-1/sqrt(ncol(fdobj[[1]]$coefs)-1)*coef%*%chol(W_tot,pivot=TRUE)
-      cov<-t(mat_interm)%*%mat_interm
-      valeurs<-Eigen(cov)
-      valeurs_propres<-valeurs$values
-      vecteurs_propres<-valeurs$vectors
-      #Calculation on eigenfunctions coefficients
-      bj<-solve(chol(W_tot))%*%vecteurs_propres
-      fonctionspropres<-fdobj[[1]]
-      fonctionspropres$coefs<-bj
-      scores<-coef%*%W_tot%*%bj
-
-      varprop<-valeurs_propres/sum(valeurs_propres)
-
-      pcafd<-list(call=call,eigval=valeurs_propres,harmonics=fonctionspropres,scores=scores,varprop=varprop,meanfd=mean_fd)
-
-    } else if (length(fdobj)==2){
-      #save object before center data
-      mean_fd1<-fdobj[[1]]
-      mean_fd2<-fdobj[[2]]
-
-      #center each functional dataset
-      if (isTRUE(center)){
-      fdobj1<-fdobj[[1]]
-      fdobj2<-fdobj[[2]]
-      coefmean1 <- apply(fdobj1$coefs, 1, mean)
-      fdobj1$coefs <- sweep(fdobj1$coefs, 1, coefmean1)
-      mean_fd1$coefs = as.matrix(data.frame(mean=coefmean1))
-      coefmean2 <- apply(fdobj2$coefs, 1, mean)
-      fdobj2$coefs <- sweep(fdobj2$coefs, 1, coefmean2)
-      mean_fd2$coefs = as.matrix(data.frame(mean=coefmean2))
-      }
-      fdobj<-list(fdobj[[1]],fdobj[[2]])
-      mean_fd<-list(mean_fd1,mean_fd2)
-
-      #Calculate W for each dataset, matrix of basis functions inner product
-      for (i in 1:length(fdobj)){
-        name<-paste('W_var',i,sep='')
-        W_fdobj<-inprod(fdobj[[i]]$basis,fdobj[[i]]$basis)
-        assign(name,W_fdobj)
-      }
-
-      #Addition of 0 before merging all matrices into \phi (cf. Publication)
-      prow<-dim(W_fdobj)[[1]]
-      pcol<-length(fdobj)*prow
-      W1<-cbind(W_fdobj,matrix(0,nrow=prow,ncol=(pcol-ncol(W_fdobj))))
-      W_list<-list()
-      for (i in 2:(length(fdobj))){
-        W2<-cbind(matrix(0,nrow=prow,ncol=(i-1)*ncol(W_fdobj)),get(paste('W_var',i,sep='')),matrix(0,nrow=prow,ncol=(pcol-i*ncol(W_fdobj))))
-        W_list[[i-1]]<-W2
-      }
-
-      #Creation of \phi
-      W_tot<-rbind(W1,W_list[[1]])
-      #To avoid numerical issues, the smallest inner product are set to 0
-      W_tot[W_tot<1e-15]=0
-
-      #Creation of C, the coefficients matrix
-      coef<-t(fdobj[[1]]$coefs)
-      coef<-cbind(coef,t(fdobj[[2]]$coefs))
-
-      mat_interm<-1/sqrt(ncol(fdobj[[1]]$coefs)-1)*coef%*%chol(W_tot,pivot=TRUE)
-      cov<-t(mat_interm)%*%mat_interm
-      valeurs<-Eigen(cov)
-      valeurs_propres<-valeurs$values
-      vecteurs_propres<-valeurs$vectors
-      #Calculation on eigenfunctions coefficients
-      bj<-solve(chol(W_tot))%*%vecteurs_propres
-      fonctionspropres<-fdobj[[1]]
-      fonctionspropres$coefs<-bj
-      scores<-coef%*%W_tot%*%bj
-
-      varprop<-valeurs_propres/sum(valeurs_propres)
-
-      pcafd<-list(call=call,eigval=valeurs_propres,harmonics=fonctionspropres,scores=scores,varprop=varprop,meanfd=mean_fd)
     }
+    #To avoid numerical issues, the smallest inner product are set to 0
+    W_tot[W_tot<1e-15]=0
+
+    #Creation of C, the coefficients matrix
+    coef<-t(fdobj[[1]]$coefs)
+    for (i in 2:length(fdobj)){
+      coef<-cbind(coef,t(fdobj[[i]]$coefs))
+    }
+
+    mat_interm<-1/sqrt(ncol(fdobj[[1]]$coefs)-1)*coef%*%chol(W_tot,pivot=TRUE)
+    cov<-t(mat_interm)%*%mat_interm
+    valeurs<-Eigen(cov)
+    valeurs_propres<-valeurs$values
+    vecteurs_propres<-valeurs$vectors
+    #Calculation on eigenfunctions coefficients
+    bj<-solve(chol(W_tot))%*%vecteurs_propres
+    fonctionspropres<-fdobj[[1]]
+    fonctionspropres$coefs<-bj
+    scores<-coef%*%W_tot%*%bj
+
+    varprop<-valeurs_propres/sum(valeurs_propres)
+
+    pcafd<-list(call=call,eigval=valeurs_propres,harmonics=fonctionspropres,scores=scores,varprop=varprop,meanfd=mean_fd)
 
   }else if (class(fdobj)!="list") {
     #save object before center data
     mean_fd<-fdobj
     if (isTRUE(center)){
-    #center each functional dataset
-    coefmean <- apply(fdobj$coefs, 1, mean)
-    fdobj$coefs <- sweep(fdobj$coefs, 1, coefmean)
-    mean_fd$coefs = as.matrix(data.frame(mean=coefmean))
+      #center each functional dataset
+      coefmean <- apply(fdobj$coefs, 1, mean)
+      fdobj$coefs <- sweep(fdobj$coefs, 1, coefmean)
+      mean_fd$coefs = as.matrix(data.frame(mean=coefmean))
     }
     #Calculate W, matrix of basis functions inner product
     W<-inprod(fdobj$basis,fdobj$basis)

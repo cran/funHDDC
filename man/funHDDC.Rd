@@ -1,6 +1,6 @@
 \name{funHDDC}
 \alias{funHDDC}
-\title{Clustering Univariate and Multivariate Functional Data in Group-specific Functional Subspaces}
+\title{Univariate and Multivariate Model-Based Clustering in Group-Specific Functional Subspaces}
 \usage{
 funHDDC(data,K=1:10,model="AkjBkQkDk",threshold=0.2,itermax=200,eps=1e-6,init="kmeans",
 criterion="bic",algo='EM', d_select="Cattell", init.vector=NULL, show=TRUE,
@@ -9,12 +9,12 @@ kmeans.control = list(), d_max=100)
 }
 \description{
 The funHDDC algorithm allows to cluster functional univariate and multivariate
-data by modeling each cluster within a specific functional subspace. See Bouveyron and Jacques (2011) <doi:10.1007/s11634-011-0095-6> and Schmutz et al. (2017) <hal:01652467> for details on the model parameters described below.
+data by modeling each cluster within a specific functional subspace.See (Schmutz et al, 2017) for details on the parameters described below.
 }
 \arguments{
     \item{data}{In the univariate case: a functional data object produced by the fda package, in the multivariate     case: a list of functional data objects.}
     \item{K}{The number of clusters, you can test one partition or multiple partitions at the same time with ':'}
-    \item{model}{The chosen model among 'AkjBkQkDk', 'AkjBQkDk', 'AkBkQkDk', 'ABkQkDk', 'AkBQkDk', 'ABQkDk'.          'AkjBkQkDk' is the default.}
+    \item{model}{The chosen model among 'AkjBkQkDk', 'AkjBQkDk', 'AkBkQkDk', 'ABkQkDk', 'AkBQkDk', 'ABQkDk'.          'AkjBkQkDk' is the default. You can test multiple models at the same time with the command c(). For example c("AkjBkQkDk","AkjBQkDk").}
     \item{threshold}{The threshold of the Cattell' scree-test used for selecting the group-specific intrinsic         dimensions.}
     \item{itermax}{The maximum number of iterations.}
     \item{eps}{The threshold of the convergence criterion.}
@@ -70,17 +70,10 @@ The different initializations are:
 Note that the BIC criterion used in this function is to be maximized and is defined as 2*LL-k*log(n) where LL is the log-likelihood, k is the number of parameters and n is the number of observations.
 
 }
-
-\references{
-- C. Bouveyron and J. Jacques, Model-based Clustering of Time Series in Group-specific Functional Subspaces, Advances in Data Analysis and Classification, vol. 5 (4), pp. 281-300, 2011.
-- A. Schmutz, C. Bouveyron, J. Jacques, L. Cheze and  P. Martin, Clustering multivariate functional data in group-specic functional subspaces, Preprint HAL 01652467, Université Côte d'Azur, 2017.
-}
-
 \examples{
 
 
 ##Univariate example
-library(fda)
 data("trigo")
 basis<- create.bspline.basis(c(0,1), nbasis=25)
 var1<-smooth.basis(argvals=seq(0,1,length.out = 100),y=t(trigo[,1:100]),fdParobj=basis)$fd
@@ -90,41 +83,37 @@ plot(var1,col=res.uni$class)
 
 
 ##Multivariate example
-library(fda)
 data("triangle")
 basis<- create.bspline.basis(c(1,21), nbasis=25)
 var1<-smooth.basis(argvals=seq(1,21,length.out = 101),y=t(triangle[,1:101]),fdParobj=basis)$fd
 var2<-smooth.basis(argvals=seq(1,21,length.out = 101),y=t(triangle[,102:202]),fdParobj=basis)$fd
 
-res.multi<-funHDDC(list(var1,var2),K=3,model="AkBkQkDk",init="kmeans",threshold=0.2)
+res.multi<-funHDDC(list(var1,var2),K=3,model="AkjBkQkDk",init="kmeans",threshold=0.2)
 par(mfrow=c(1,2))
 plot(var1,col=res.multi$class)
 plot(var2,col=res.multi$class)
 
-
 \donttest{
-#You can test multiple number of groups at the same time
+##You can test multiple number of groups at the same time
 data("trigo")
 basis<- create.bspline.basis(c(0,1), nbasis=25)
 var1<-smooth.basis(argvals=seq(0,1,length.out = 100),y=t(trigo[,1:100]),fdParobj=basis)$fd
 res.uni<-funHDDC(var1,K=2:4,model="AkBkQkDk",init="kmeans",threshold=0.2)
 
-#You can test multiple models at the same time
+##You can test multiple models at the same time
 data("trigo")
 basis<- create.bspline.basis(c(0,1), nbasis=25)
 var1<-smooth.basis(argvals=seq(0,1,length.out = 100),y=t(trigo[,1:100]),fdParobj=basis)$fd
 res.uni<-funHDDC(var1,K=3,model=c("AkjBkQkDk","AkBkQkDk"),init="kmeans",threshold=0.2)
 
-#Another example on Canadian data
-
-#Clustering the "Canadian temperature" data (Ramsey & Silverman): univariate case
+###Clustering the "Canadian temperature" data (Ramsey & Silverman): univariate case
 daybasis65 <- create.fourier.basis(c(0, 365), nbasis=65, period=365)
 daytempfd <- smooth.basis(day.5, CanadianWeather$dailyAv[,,"Temperature.C"], daybasis65,
-    fdnames=list("Day", "Station", "Deg C"))$fd
+             fdnames=list("Day", "Station", "Deg C"))$fd
 
 res.uni<-funHDDC(daytempfd,K=3,model="AkjBkQkDk",init="random",threshold=0.2)
 
-#Graphical representation of groups mean curves
+##Graphical representation of groups mean curves
 select1<-fd(daytempfd$coefs[,which(res.uni$class==1)],daytempfd$basis)
 select2<-fd(daytempfd$coefs[,which(res.uni$class==2)],daytempfd$basis)
 select3<-fd(daytempfd$coefs[,which(res.uni$class==3)],daytempfd$basis)
@@ -134,7 +123,7 @@ lines(mean.fd(select2),col="palegreen2",lty=1,lwd=3)
 lines(mean.fd(select3),col="navy",lty=1,lwd=3)
 
 
-#Clustering the "Canadian temperature" data (Ramsey & Silverman): multivariate case
+###Clustering the "Canadian temperature" data (Ramsey & Silverman): multivariate case
 daybasis65 <- create.fourier.basis(c(0, 365), nbasis=65, period=365)
 daytempfd <- smooth.basis(day.5, CanadianWeather$dailyAv[,,"Temperature.C"], daybasis65,
     fdnames=list("Day", "Station", "Deg C"))$fd
@@ -143,8 +132,8 @@ dayprecfd<-smooth.basis(day.5, CanadianWeather$dailyAv[,,"Precipitation.mm"], da
 
 res.multi<-funHDDC(list(daytempfd,dayprecfd),K=3,model="AkjBkQkDk",init="random",threshold=0.2)
 
-#Graphical representation of groups mean curves
-#Temperature
+##Graphical representation of groups mean curves
+##Temperature
 select1<-fd(daytempfd$coefs[,which(res.multi$class==1)],daytempfd$basis)
 select2<-fd(daytempfd$coefs[,which(res.multi$class==2)],daytempfd$basis)
 select3<-fd(daytempfd$coefs[,which(res.multi$class==3)],daytempfd$basis)
@@ -153,7 +142,7 @@ plot(mean.fd(select1),col="lightblue",ylim=c(-20,20),lty=1,lwd=3)
 lines(mean.fd(select2),col="palegreen2",lty=1,lwd=3)
 lines(mean.fd(select3),col="navy",lty=1,lwd=3)
 
-#Precipitation
+##Precipitation
 select1b<-fd(dayprecfd$coefs[,which(res.multi$class==1)],dayprecfd$basis)
 select2b<-fd(dayprecfd$coefs[,which(res.multi$class==2)],dayprecfd$basis)
 select3b<-fd(dayprecfd$coefs[,which(res.multi$class==3)],dayprecfd$basis)

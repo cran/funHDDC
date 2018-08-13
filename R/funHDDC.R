@@ -1,267 +1,267 @@
 funHDDC  <-
   function(data, K=1:10, model="AkjBkQkDk", threshold=0.2, itermax=200, eps=1e-6,init='kmeans', criterion="bic",
-          algo='EM', d_select="Cattell",  init.vector=NULL, show=TRUE, mini.nb=c(5, 10),
-          min.individuals=2, mc.cores=1, nb.rep=1, keepAllRes=TRUE, kmeans.control = list(), d_max=100){
+           algo='EM', d_select="Cattell",  init.vector=NULL, show=TRUE, mini.nb=c(5, 10),
+           min.individuals=2, mc.cores=1, nb.rep=1, keepAllRes=TRUE, kmeans.control = list(), d_max=100){
 
     #Options removed from call
-  com_dim=NULL
-  scaling=FALSE
-  noise.ctrl=1e-8
+    com_dim=NULL
+    scaling=FALSE
+    noise.ctrl=1e-8
 
-  #nb.rep parameter
-  if ((init=="random")&(nb.rep<20)){
-    nb.rep=20
-  }
-  #
-  # CONTROLS
-  #
-
-  call = match.call()
-  .hddc_control(call)
-  # Control of match.args:
-  criterion = .myAlerts(criterion, "criterion", "singleCharacterMatch.arg", "HDDC: ", c("bic", "icl"))
-  algo = .myAlerts(algo, "algo", "singleCharacterMatch.arg", "HDDC: ", c('EM', 'CEM', 'SEM'))
-  d_select = .myAlerts(d_select, "d_select", "singleCharacterMatch.arg", "HDDC: ", c("cattell", "bic"))
-  init = .myAlerts(init, "init", "singleCharacterMatch.arg", "HDDC: ", c('random', 'kmeans', 'mini-em', 'param', "vector"))
-  # We get the model names, properly ordered
-  model = .hdc_getTheModel(model, all2models = TRUE)
-  # kmeans controls
-  kmeans.control = .default_kmeans_control(kmeans.control)
-
-
-  if (scaling) {
-    stop('Scaling is not implemented!')
-  } else scaling <- NULL
-
-  BIC <- ICL <- c()
-  fdobj = data
-  if (class(fdobj)!='list') {x = t(fdobj$coefs)}
-  else {x = t(fdobj[[1]]$coefs); for (i in 2:length(fdobj)) x = cbind(x,t(fdobj[[i]]$coefs))}
-  p <- ncol(x)
-
-  #
-  # Preparing the parallel
-  #
-
-  if(d_select=="bic"){
-    # If the dimension selection is done with BIC, we don't care of the threshold
-    threshold = "bic"
-  }
-
-  if(max(table(K))>1) warning("The number of clusters, K, is made unique (repeated values are not tolerated).")
-  K = sort(unique(K))
-  if(any(K==1)){
-    # K=1 => only one model required
-    K = K[K!=1]
-    addrows = data.frame(model="AKJBKQKDK", K=1, threshold)
-  } else {
-    addrows = c()
-  }
-
-  mkt_Expand = expand.grid(model=model, K=K, threshold=threshold)
-  mkt_Expand = do.call(rbind, replicate(nb.rep, mkt_Expand, simplify=FALSE))
-  mkt_Expand = rbind(addrows, mkt_Expand) #no need for several runs for K==1
-
-  model = as.character(mkt_Expand$model)
-  K = mkt_Expand$K
-  threshold = mkt_Expand$threshold
-
-  # We transform it into an univariate form
-  mkt_univariate = apply(mkt_Expand, 1, paste, collapse= "_")
-
-  # Mon 'caller' for LTBM that will be used in multi-cores lapply
-  hddcWrapper = function(mkt_univariate, ...){
-
-    mkt_splitted =  strsplit(mkt_univariate, "_")
-
-    # on retrouve model, K and threshold
-    model = sapply(mkt_splitted, function(x) x[1])
-    K = sapply(mkt_splitted, function(x) as.numeric(x[2]))
-    threshold = sapply(mkt_splitted, function(x) ifelse(x[3]=="bic","bic",as.numeric(x[3])))
-
-    # (::: is needed for windows multicore)
-    res = "unknown error"
-    # try(res <- HDclassif:::funhddc_main(model=model, K=K, threshold=threshold, ...))
-    try(res <- .funhddc_main(model=model, K=K, threshold=threshold, ...))
-    res
-  }
-
-  # We reset the number of cores to use
-  nRuns = length(mkt_univariate)
-  if(nRuns<mc.cores) mc.cores = nRuns
-
-  # We swicth to the right number of cores + a warning if necessary
-  max_nb_of_cores = parallel::detectCores()
-  if(mc.cores>max_nb_of_cores){
-    warning("The argument mc.cores is greater than its maximun.\nmc.cores was set to ", max_nb_of_cores)
-    mc.cores = max_nb_of_cores
-  }
-
-
-  #
-  # Parallel estimations
-  #
-
-  if(mc.cores == 1){
-    # If there is no need for parallel, we just use lapply // in order to have the same output
-
-    par.output = lapply(mkt_univariate, hddcWrapper, fdobj=fdobj, method=d_select, algo=algo, itermax=itermax, eps=eps, init=init, init.vector=init.vector, mini.nb=mini.nb, min.individuals=min.individuals, noise.ctrl=noise.ctrl, com_dim=com_dim, kmeans.control=kmeans.control, d_max=d_max)
-
-  } else if(Sys.info()[['sysname']] == 'Windows'){
-    # we use parLapply:
-
-    ## create clusters
-    cl = parallel::makeCluster(mc.cores)
-    ## load the packages
-    loadMyPackages = function(x){
-      # loadMyPackages = function(none, myFuns){
-      # we load the package
-      library(funHDDC)
-      # we add the functions in the global env
-      # for(i in 1:length(myFuns)){
-      # 	funName = names(myFuns)[i]
-      # 	fun = myFuns[[i]]
-      # 	assign(funName, fun, .GlobalEnv)
-      # }
+    #nb.rep parameter
+    if ((init=="random")&(nb.rep<20)){
+      nb.rep=20
     }
-    ## Create the functions to export
-    # myFuns = list(hddc_main = hddc_main, hddc_e_step=hddc_e_step, hddc_m_step=hddc_m_step, hdc_getComplexity=hdc_getComplexity, hdc_myEigen=hdc_myEigen, hdclassif_dim_choice=hdclassif_dim_choice, hdclassif_bic=hdclassif_bic)
-    # par.setup = parallel::parLapply(cl, 1:length(cl), loadMyPackages, myFuns=myFuns)
-    par.setup = parallel::parLapply(cl, 1:length(cl), loadMyPackages)
+    #
+    # CONTROLS
+    #
 
-    ## run the parallel
-    par.output = NULL
-    try(par.output <- parallel::parLapply(cl, mkt_univariate, hddcWrapper, DATA=fdobj, method=d_select, algo=algo, itermax=itermax, eps=eps, init=init, init.vector=ifelse(missing(init.vector), NA, init.vector), mini.nb=mini.nb, min.individuals=min.individuals, noise.ctrl=noise.ctrl, com_dim=com_dim, kmeans.control=kmeans.control, d_max=d_max))
+    call = match.call()
+    .hddc_control(call)
+    # Control of match.args:
+    criterion = .myAlerts(criterion, "criterion", "singleCharacterMatch.arg", "HDDC: ", c("bic", "icl"))
+    algo = .myAlerts(algo, "algo", "singleCharacterMatch.arg", "HDDC: ", c('EM', 'CEM', 'SEM'))
+    d_select = .myAlerts(d_select, "d_select", "singleCharacterMatch.arg", "HDDC: ", c("cattell", "bic"))
+    init = .myAlerts(init, "init", "singleCharacterMatch.arg", "HDDC: ", c('random', 'kmeans', 'mini-em', 'param', "vector"))
+    # We get the model names, properly ordered
+    model = .hdc_getTheModel(model, all2models = TRUE)
+    # kmeans controls
+    kmeans.control = .default_kmeans_control(kmeans.control)
 
-    ## Stop the clusters
-    parallel::stopCluster(cl)
 
-    if(is.null(par.output)) stop("Unknown error in the parallel computing. Try mc.cores=1 to detect the problem.")
+    if (scaling) {
+      stop('Scaling is not implemented!')
+    } else scaling <- NULL
 
-  } else {
-    # we use mclapply
+    BIC <- ICL <- c()
+    fdobj = data
+    if (class(fdobj)!='list') {x = t(fdobj$coefs)}
+    else {x = t(fdobj[[1]]$coefs); for (i in 2:length(fdobj)) x = cbind(x,t(fdobj[[i]]$coefs))}
+    p <- ncol(x)
 
-    par.output = NULL
-    try(par.output <- parallel::mclapply(mkt_univariate, hddcWrapper, DATA=fdobj, method=d_select, algo=algo, itermax=itermax, eps=eps, init=init, init.vector=init.vector, mini.nb=mini.nb, min.individuals=min.individuals, noise.ctrl=noise.ctrl, com_dim=com_dim, kmeans.control=kmeans.control, d_max=d_max, mc.cores=mc.cores))
+    #
+    # Preparing the parallel
+    #
 
-    if(is.null(par.output)) stop("Unknown error in the parallel computing. Try mc.cores=1 to detect the problem.")
+    if(d_select=="bic"){
+      # If the dimension selection is done with BIC, we don't care of the threshold
+      threshold = "bic"
+    }
 
+    if(max(table(K))>1) warning("The number of clusters, K, is made unique (repeated values are not tolerated).")
+    K = sort(unique(K))
+    if(any(K==1)){
+      # K=1 => only one model required
+      K = K[K!=1]
+      addrows = data.frame(model="AKJBKQKDK", K=1, threshold)
+    } else {
+      addrows = c()
+    }
+
+    mkt_Expand = expand.grid(model=model, K=K, threshold=threshold)
+    mkt_Expand = do.call(rbind, replicate(nb.rep, mkt_Expand, simplify=FALSE))
+    mkt_Expand = rbind(addrows, mkt_Expand) #no need for several runs for K==1
+
+    model = as.character(mkt_Expand$model)
+    K = mkt_Expand$K
+    threshold = mkt_Expand$threshold
+
+    # We transform it into an univariate form
+    mkt_univariate = apply(mkt_Expand, 1, paste, collapse= "_")
+
+    # Mon 'caller' for LTBM that will be used in multi-cores lapply
+    hddcWrapper = function(mkt_univariate, ...){
+
+      mkt_splitted =  strsplit(mkt_univariate, "_")
+
+      # on retrouve model, K and threshold
+      model = sapply(mkt_splitted, function(x) x[1])
+      K = sapply(mkt_splitted, function(x) as.numeric(x[2]))
+      threshold = sapply(mkt_splitted, function(x) ifelse(x[3]=="bic","bic",as.numeric(x[3])))
+
+      # (::: is needed for windows multicore)
+      res = "unknown error"
+      # try(res <- HDclassif:::funhddc_main(model=model, K=K, threshold=threshold, ...))
+      try(res <- .funhddc_main(model=model, K=K, threshold=threshold, ...),silent=TRUE)
+      res
+    }
+
+    # We reset the number of cores to use
+    nRuns = length(mkt_univariate)
+    if(nRuns<mc.cores) mc.cores = nRuns
+
+    # We swicth to the right number of cores + a warning if necessary
+    max_nb_of_cores = parallel::detectCores()
+    if(mc.cores>max_nb_of_cores){
+      warning("The argument mc.cores is greater than its maximun.\nmc.cores was set to ", max_nb_of_cores)
+      mc.cores = max_nb_of_cores
+    }
+
+
+    #
+    # Parallel estimations
+    #
+
+    if(mc.cores == 1){
+      # If there is no need for parallel, we just use lapply // in order to have the same output
+
+      par.output = lapply(mkt_univariate, hddcWrapper, fdobj=fdobj, method=d_select, algo=algo, itermax=itermax, eps=eps, init=init, init.vector=init.vector, mini.nb=mini.nb, min.individuals=min.individuals, noise.ctrl=noise.ctrl, com_dim=com_dim, kmeans.control=kmeans.control, d_max=d_max)
+
+    } else if(Sys.info()[['sysname']] == 'Windows'){
+      # we use parLapply:
+
+      ## create clusters
+      cl = parallel::makeCluster(mc.cores)
+      ## load the packages
+      loadMyPackages = function(x){
+        # loadMyPackages = function(none, myFuns){
+        # we load the package
+        library(funHDDC)
+        # we add the functions in the global env
+        # for(i in 1:length(myFuns)){
+        # 	funName = names(myFuns)[i]
+        # 	fun = myFuns[[i]]
+        # 	assign(funName, fun, .GlobalEnv)
+        # }
+      }
+      ## Create the functions to export
+      # myFuns = list(hddc_main = hddc_main, hddc_e_step=hddc_e_step, hddc_m_step=hddc_m_step, hdc_getComplexity=hdc_getComplexity, hdc_myEigen=hdc_myEigen, hdclassif_dim_choice=hdclassif_dim_choice, hdclassif_bic=hdclassif_bic)
+      # par.setup = parallel::parLapply(cl, 1:length(cl), loadMyPackages, myFuns=myFuns)
+      par.setup = parallel::parLapply(cl, 1:length(cl), loadMyPackages)
+
+      ## run the parallel
+      par.output = NULL
+      try(par.output <- parallel::parLapply(cl, mkt_univariate, hddcWrapper, DATA=fdobj, method=d_select, algo=algo, itermax=itermax, eps=eps, init=init, init.vector=ifelse(missing(init.vector), NA, init.vector), mini.nb=mini.nb, min.individuals=min.individuals, noise.ctrl=noise.ctrl, com_dim=com_dim, kmeans.control=kmeans.control, d_max=d_max))
+
+      ## Stop the clusters
+      parallel::stopCluster(cl)
+
+      if(is.null(par.output)) stop("Unknown error in the parallel computing. Try mc.cores=1 to detect the problem.")
+
+    } else {
+      # we use mclapply
+
+      par.output = NULL
+      try(par.output <- parallel::mclapply(mkt_univariate, hddcWrapper, DATA=fdobj, method=d_select, algo=algo, itermax=itermax, eps=eps, init=init, init.vector=init.vector, mini.nb=mini.nb, min.individuals=min.individuals, noise.ctrl=noise.ctrl, com_dim=com_dim, kmeans.control=kmeans.control, d_max=d_max, mc.cores=mc.cores))
+
+      if(is.null(par.output)) stop("Unknown error in the parallel computing. Try mc.cores=1 to detect the problem.")
+
+    }
+
+    #
+    # The results are retrieved
+    #
+
+    getElement = function(x, what, valueIfNull = -Inf){
+      # attention si x est le modele nul
+      if(length(x)==1) return(valueIfNull)
+      if(!is.list(x) && !what %in% names(x)) return(NA)
+      x[[what]][length(x[[what]])]
+    }
+
+    getComment = function(x){
+      # we get the error message
+      if(length(x)==1) return(x)
+      return("")
+    }
+
+    # All likelihoods
+    LL_all = sapply(par.output, getElement, what="loglik")
+    comment_all = sapply(par.output, getComment)
+
+    # If no model is valid => problem
+    if(all(!is.finite(LL_all))){
+      warning("All models diverged.")
+      allCriteria = data.frame(model=model, K=K, threshold=threshold, LL = LL_all, BIC=NA, comment=comment_all)
+      res = list()
+      res$allCriteria = allCriteria
+      return(res)
+    }
+
+    # We select, for each (Q,K), the best run
+    n = nrow(mkt_Expand)
+    modelKeep = sapply(unique(mkt_univariate), function(x) (1:n)[mkt_univariate==x][which.max(LL_all[mkt_univariate==x])])
+    # => we select only the best models
+    LL_all = LL_all[modelKeep]
+    comment_all = comment_all[modelKeep]
+    par.output = par.output[modelKeep]
+    BIC = sapply(par.output, getElement, what="BIC")
+    ICL = sapply(par.output, getElement, what="ICL")
+    comp_all = sapply(par.output, getElement, what="complexity", valueIfNull=NA)
+    model = model[modelKeep]
+    threshold = threshold[modelKeep]
+    K = K[modelKeep]
+
+    # We define the criterion of model selection
+    CRIT = switch(criterion,
+                  bic = BIC,
+                  icl = ICL)
+
+    # The order of the results
+    myOrder = order(CRIT, decreasing = TRUE)
+
+    # On sauvegarde le bon modele + creation de l'output
+    qui = which.max(CRIT)
+
+    prms = par.output[[qui]]
+    prms$criterion = CRIT[qui]
+    names(prms$criterion) = criterion
+
+    # Other output
+    prms$call = call
+    # We add the complexity
+    names(comp_all) = mkt_univariate[modelKeep]
+    prms$complexity_allModels = comp_all
+
+    # Display
+    if(show){
+      if(n>1) cat("funHDDC: \n")
+
+      model2print = sapply(model, function(x) sprintf("%*s", max(nchar(model)), x))
+      K2print = as.character(K)
+      K2print = sapply(K2print, function(x) sprintf("%*s", max(nchar(K2print)), x))
+      thresh2print = as.character(threshold)
+      thresh_width = max(nchar(thresh2print))
+      thresh2print = sapply(thresh2print, function(x) sprintf("%s%s", x, paste0(rep("0", thresh_width - nchar(x)), collapse="") ))
+
+      # on cree une data.frame
+      myResMat = cbind(model2print[myOrder], K2print[myOrder], thresh2print[myOrder],.addCommas(prms$complexity_allModels[myOrder]), .addCommas(CRIT[myOrder]), comment_all[myOrder])
+
+      myResMat = as.data.frame(myResMat)
+      names(myResMat) = c("model", "K", "threshold", "complexity",toupper(criterion), "comment")
+      row.names(myResMat) = 1:nrow(myResMat)
+
+      # if no problem => no comment
+      if(all(comment_all == "")) myResMat$comment = NULL
+
+      print(myResMat)
+
+      msg = switch(criterion, bic="BIC", icl="ICL")
+      cat("\nSELECTED: model ", prms$model, " with ", prms$K, " clusters.\n")
+      cat("Selection Criterion: ", msg, ".\n", sep="")
+
+    }
+
+    # We also add the matrix of all criteria
+    allCriteria = data.frame(model=model[myOrder], K=K[myOrder], threshold=threshold[myOrder], LL=LL_all[myOrder],complexity=prms$complexity_allModels[myOrder], BIC=BIC[myOrder], ICL=ICL[myOrder], rank = 1:length(myOrder))
+
+    # we add the comments if necessary
+    if(any(comment_all != "")) allCriteria$comment = comment_all[myOrder]
+    prms$allCriteria = allCriteria
+
+    # If all the results are kept
+    if(keepAllRes){
+      all_results = par.output
+      names(all_results) = mkt_univariate[modelKeep]
+      prms$all_results = all_results
+    }
+
+    # Other stuff
+    prms$scaling <- scaling
+    prms$threshold <- threshold[qui]
+
+    return(prms)
   }
-
-  #
-  # The results are retrieved
-  #
-
-  getElement = function(x, what, valueIfNull = -Inf){
-    # attention si x est le modele nul
-    if(length(x)==1) return(valueIfNull)
-    if(!is.list(x) && !what %in% names(x)) return(NA)
-    x[[what]][length(x[[what]])]
-  }
-
-  getComment = function(x){
-    # we get the error message
-    if(length(x)==1) return(x)
-    return("")
-  }
-
-  # All likelihoods
-  LL_all = sapply(par.output, getElement, what="loglik")
-  comment_all = sapply(par.output, getComment)
-
-  # If no model is valid => problem
-  if(all(!is.finite(LL_all))){
-    warning("All models diverged.")
-    allCriteria = data.frame(model=model, K=K, threshold=threshold, LL = LL_all, BIC=NA, comment=comment_all)
-    res = list()
-    res$allCriteria = allCriteria
-    return(res)
-  }
-
-  # We select, for each (Q,K), the best run
-  n = nrow(mkt_Expand)
-  modelKeep = sapply(unique(mkt_univariate), function(x) (1:n)[mkt_univariate==x][which.max(LL_all[mkt_univariate==x])])
-  # => we select only the best models
-  LL_all = LL_all[modelKeep]
-  comment_all = comment_all[modelKeep]
-  par.output = par.output[modelKeep]
-  BIC = sapply(par.output, getElement, what="BIC")
-  ICL = sapply(par.output, getElement, what="ICL")
-  comp_all = sapply(par.output, getElement, what="complexity", valueIfNull=NA)
-  model = model[modelKeep]
-  threshold = threshold[modelKeep]
-  K = K[modelKeep]
-
-  # We define the criterion of model selection
-  CRIT = switch(criterion,
-                bic = BIC,
-                icl = ICL)
-
-  # The order of the results
-  myOrder = order(CRIT, decreasing = TRUE)
-
-  # On sauvegarde le bon modele + creation de l'output
-  qui = which.max(CRIT)
-
-  prms = par.output[[qui]]
-  prms$criterion = CRIT[qui]
-  names(prms$criterion) = criterion
-
-  # Other output
-  prms$call = call
-  # We add the complexity
-  names(comp_all) = mkt_univariate[modelKeep]
-  prms$complexity_allModels = comp_all
-
-  # Display
-  if(show){
-    if(n>1) cat("funHDDC: \n")
-
-    model2print = sapply(model, function(x) sprintf("%*s", max(nchar(model)), x))
-    K2print = as.character(K)
-    K2print = sapply(K2print, function(x) sprintf("%*s", max(nchar(K2print)), x))
-    thresh2print = as.character(threshold)
-    thresh_width = max(nchar(thresh2print))
-    thresh2print = sapply(thresh2print, function(x) sprintf("%s%s", x, paste0(rep("0", thresh_width - nchar(x)), collapse="") ))
-
-    # on cree une data.frame
-    myResMat = cbind(model2print[myOrder], K2print[myOrder], thresh2print[myOrder], .addCommas(CRIT[myOrder]), comment_all[myOrder])
-
-    myResMat = as.data.frame(myResMat)
-    names(myResMat) = c("model", "K", "threshold", toupper(criterion), "comment")
-    row.names(myResMat) = 1:nrow(myResMat)
-
-    # if no problem => no comment
-    if(all(comment_all == "")) myResMat$comment = NULL
-
-    print(myResMat)
-
-    msg = switch(criterion, bic="BIC", icl="ICL")
-    cat("\nSELECTED: model ", prms$model, " with ", prms$K, " clusters.\n")
-    cat("Selection Criterion: ", msg, ".\n", sep="")
-
-  }
-
-  # We also add the matrix of all criteria
-  allCriteria = data.frame(model=model[myOrder], K=K[myOrder], threshold=threshold[myOrder], LL=LL_all[myOrder], BIC=BIC[myOrder], ICL=ICL[myOrder], rank = 1:length(myOrder))
-
-  # we add the comments if necessary
-  if(any(comment_all != "")) allCriteria$comment = comment_all[myOrder]
-  prms$allCriteria = allCriteria
-
-  # If all the results are kept
-  if(keepAllRes){
-    all_results = par.output
-    names(all_results) = mkt_univariate[modelKeep]
-    prms$all_results = all_results
-  }
-
-  # Other stuff
-  prms$scaling <- scaling
-  prms$threshold <- threshold[qui]
-
-  return(prms)
-}
 
 .funhddc_main <- function(fdobj, K, model, threshold, method, algo, itermax, eps, init, init.vector, mini.nb, min.individuals, noise.ctrl, com_dim=NULL, kmeans.control, d_max, ...){
 
@@ -527,123 +527,67 @@ funHDDC  <-
 
 .mypca.fd <- function(fdobj, Ti){
   if (class(fdobj)=="list"){
+    #sauvegarde de la moyenne avant centrage
+    mean_fd<-list()
+    for (i in 1:length(fdobj)){
+      mean_fd[[i]]<-fdobj[[i]]
+    }
 
-    if (length(fdobj)>2) {
-      #sauvegarde de la moyenne avant centrage
-      mean_fd<-list()
-      for (i in 1:length(fdobj)){
-        mean_fd[[i]]<-fdobj[[i]]
-      }
+    #centrage des objets fonctionnels
+    for (i in 1:length(fdobj)){
+      coefmean <- apply(t(as.matrix(Ti) %*% matrix(1,1,nrow(fdobj[[i]]$coefs))) * fdobj[[i]]$coefs, 1, sum) / sum(Ti)
+      fdobj[[i]]$coefs <- sweep(fdobj[[i]]$coefs, 1, coefmean)
+      mean_fd[[i]]$coefs = as.matrix(data.frame(mean=coefmean))
+    }
 
-      #centrage des objets fonctionnels
-      for (i in 1:length(fdobj)){
-        coefmean <- apply(t(as.matrix(Ti) %*% matrix(1,1,nrow(fdobj[[i]]$coefs))) * fdobj[[i]]$coefs, 1, sum) / sum(Ti)
-        fdobj[[i]]$coefs <- sweep(fdobj[[i]]$coefs, 1, coefmean)
-        mean_fd[[i]]$coefs = as.matrix(data.frame(mean=coefmean))
-      }
+    #Cr?ation des matrices des produits des bases de fonction
+    for (i in 1:length(fdobj)){
+      name<-paste('W_var',i,sep='')
+      W_fdobj<-inprod(fdobj[[i]]$basis,fdobj[[i]]$basis)
+      assign(name,W_fdobj)
+    }
 
-      #Cr?ation des matrices des produits des bases de fonction
-      for (i in 1:length(fdobj)){
-        name<-paste('W_var',i,sep='')
-        W_fdobj<-inprod(fdobj[[i]]$basis,fdobj[[i]]$basis)
-        assign(name,W_fdobj)
-      }
+    #Ajout des 0 ? gauche et ? droite des matrices W avant leur fusion en matrice phi
+    prow<-dim(W_fdobj)[[1]]
+    pcol<-length(fdobj)*prow
+    W1<-cbind(W_fdobj,matrix(0,nrow=prow,ncol=(pcol-ncol(W_fdobj))))
+    W_list<-list()
+    for (i in 2:(length(fdobj))){
+      W2<-cbind(matrix(0,nrow=prow,ncol=(i-1)*ncol(W_fdobj)),get(paste('W_var',i,sep='')),matrix(0,nrow=prow,ncol=(pcol-i*ncol(W_fdobj))))
+      W_list[[i-1]]<-W2
+    }
 
-      #Ajout des 0 ? gauche et ? droite des matrices W avant leur fusion en matrice phi
-      prow<-dim(W_fdobj)[[1]]
-      pcol<-length(fdobj)*prow
-      W1<-cbind(W_fdobj,matrix(0,nrow=prow,ncol=(pcol-ncol(W_fdobj))))
-      W_list<-list()
-      for (i in 2:(length(fdobj))){
-        W2<-cbind(matrix(0,nrow=prow,ncol=(i-1)*ncol(W_fdobj)),get(paste('W_var',i,sep='')),matrix(0,nrow=prow,ncol=(pcol-i*ncol(W_fdobj))))
-        W_list[[i-1]]<-W2
-      }
-
-      #Cr?ation de la matrice phi
-      W_tot<-rbind(W1,W_list[[1]])
+    #Cr?ation de la matrice phi
+    W_tot<-rbind(W1,W_list[[1]])
+    if (length(fdobj)>2){
       for(i in 2:(length(fdobj)-1)){
         W_tot<-rbind(W_tot,W_list[[i]])
       }
-      W_tot[W_tot<1e-15]=0
-
-      #Cr?ation de la matrice de coef
-      coef<-t(fdobj[[1]]$coefs)
-      for (i in 2:length(fdobj)){
-        coef<-cbind(coef,t(fdobj[[i]]$coefs))
-      }
-
-      #mat_interm<-1/sqrt((sum(Ti)-1))*coef%*%(W_tot)^(1/2)
-      mat_interm<-1/sqrt((sum(Ti)))*coef%*%chol(W_tot,pivot=TRUE)
-      cov<-(.repmat(Ti,n=pcol,p=1)*t(mat_interm))%*%mat_interm
-      valeurs<-Eigen(cov)
-      valeurs_propres<-valeurs$values
-      vecteurs_propres<-valeurs$vectors
-      #bj<-solve((W_tot)^(1/2))%*%vecteurs_propres
-      bj<-solve(chol(W_tot))%*%vecteurs_propres
-      fonctionspropres<-fdobj[[1]]
-      fonctionspropres$coefs<-bj
-      scores<-coef%*%W_tot%*%bj
-
-      varprop<-valeurs_propres/sum(valeurs_propres)
-
-      pcafd<-list(valeurs_propres=valeurs_propres,harmonic=fonctionspropres,scores=scores,covariance=cov,U=bj,varprop=varprop,meanfd=mean_fd,W=W_tot)
-
-    } else if (length(fdobj)==2){
-      #sauvegarde de la moyenne par groupe avant centrage
-      mean_fd1<-fdobj[[1]]
-      mean_fd2<-fdobj[[2]]
-      #centrage des objets fonctionnels par groupe
-      fdobj1<-fdobj[[1]]
-      fdobj2<-fdobj[[2]]
-      coefmean1 <- apply(t(as.matrix(Ti) %*% matrix(1,1,nrow(fdobj1$coefs))) * fdobj1$coefs, 1, sum) / sum(Ti)
-      fdobj1$coefs <- sweep(fdobj1$coefs, 1, coefmean1)
-      mean_fd1$coefs = as.matrix(data.frame(mean=coefmean1))
-      coefmean2 <- apply(t(as.matrix(Ti) %*% matrix(1,1,nrow(fdobj2$coefs))) * fdobj2$coefs, 1, sum) / sum(Ti)
-      fdobj2$coefs <- sweep(fdobj2$coefs, 1, coefmean2)
-      mean_fd2$coefs = as.matrix(data.frame(mean=coefmean2))
-
-      fdobj<-list(fdobj[[1]],fdobj[[2]])
-      mean_fd<-list(mean_fd1,mean_fd2)
-
-      #calcul de la matrice des produits scalaires
-      for (i in 1:length(fdobj)){
-        name<-paste('W_var',i,sep='')
-        W_fdobj<-inprod(fdobj[[i]]$basis,fdobj[[i]]$basis)
-        assign(name,W_fdobj)
-      }
-
-      #Ajout des 0 ? gauche et ? droite des matrices W avant leur fusion en matrice phi
-      prow<-dim(W_fdobj)[[1]]
-      pcol<-length(fdobj)*prow
-      W1<-cbind(W_fdobj,matrix(0,nrow=prow,ncol=(pcol-ncol(W_fdobj))))
-      W_list<-list()
-      for (i in 2:(length(fdobj))){
-        W2<-cbind(matrix(0,nrow=prow,ncol=(i-1)*ncol(W_fdobj)),get(paste('W_var',i,sep='')),matrix(0,nrow=prow,ncol=(pcol-i*ncol(W_fdobj))))
-        W_list[[i-1]]<-W2
-      }
-
-      #Cr?ation de la matrice phi
-      W_tot<-rbind(W1,W_list[[1]])
-      W_tot[W_tot<1e-15]=0
-
-      #Cr?ation de la matrice de coef
-      coef<-t(fdobj[[1]]$coefs)
-      coef<-cbind(coef,t(fdobj[[2]]$coefs))
-
-      mat_interm<-1/sqrt((sum(Ti)))*coef%*%chol(W_tot,pivot=TRUE)
-      cov<-(.repmat(Ti,n=pcol,p=1)*t(mat_interm))%*%mat_interm
-      valeurs<-Eigen(cov)
-      valeurs_propres<-valeurs$values
-      vecteurs_propres<-valeurs$vectors
-      #bj<-solve((W_tot)^(1/2))%*%vecteurs_propres
-      bj<-solve(chol(W_tot))%*%vecteurs_propres
-      scores<-coef%*%W_tot%*%bj
-      fonctionspropres<-fdobj[[1]]
-      fonctionspropres$coefs<-bj
-      varprop<-valeurs_propres/sum(valeurs_propres)
-
-      pcafd<-list(valeurs_propres=valeurs_propres,harmonic=fonctionspropres,scores=scores,covariance=cov,U=bj,varprop=varprop,meanfd=mean_fd,W=W_tot)
     }
+    W_tot[W_tot<1e-15]=0
+
+    #Cr?ation de la matrice de coef
+    coef<-t(fdobj[[1]]$coefs)
+    for (i in 2:length(fdobj)){
+      coef<-cbind(coef,t(fdobj[[i]]$coefs))
+    }
+
+    #mat_interm<-1/sqrt((sum(Ti)-1))*coef%*%(W_tot)^(1/2)
+    mat_interm<-1/sqrt((sum(Ti)))*coef%*%chol(W_tot,pivot=TRUE)
+    cov<-(.repmat(Ti,n=pcol,p=1)*t(mat_interm))%*%mat_interm
+    valeurs<-Eigen(cov)
+    valeurs_propres<-valeurs$values
+    vecteurs_propres<-valeurs$vectors
+    #bj<-solve((W_tot)^(1/2))%*%vecteurs_propres
+    bj<-solve(chol(W_tot))%*%vecteurs_propres
+    fonctionspropres<-fdobj[[1]]
+    fonctionspropres$coefs<-bj
+    scores<-coef%*%W_tot%*%bj
+
+    varprop<-valeurs_propres/sum(valeurs_propres)
+
+    pcafd<-list(valeurs_propres=valeurs_propres,harmonic=fonctionspropres,scores=scores,covariance=cov,U=bj,varprop=varprop,meanfd=mean_fd,W=W_tot)
+
 
   }else if (class(fdobj)!="list") {
     #Calcul de la moyenne par groupe
@@ -1249,14 +1193,6 @@ funHDDC  <-
   else if (model=='AKJBQKDK') m <- ro+tot+D+1
   else if (model=='AKBQKDK') m <- ro+tot+K+1
   else if (model=='ABQKDK') m <- ro+tot+2
-  else if (model=='AKJBKQKD') m <- ro+K*(to+d+1)+1
-  else if (model=='AKBKQKD') m <- ro+K*(to+2)+1
-  else if (model=='ABKQKD') m <- ro+K*(to+1)+2
-  else if (model=='AKJBQKD') m <- ro+K*(to+d)+2
-  else if (model=='AKBQKD') m <- ro+K*(to+1)+2
-  else if (model=='ABQKD') m <- ro+K*to+3
-  else if (model=='AJBQD') m <- ro+to+d+2
-  else if (model=='ABQD') m <- ro+to+3
   bic <- -(-2*L+m*log(N))
 
   #calcul ICL
@@ -1294,14 +1230,6 @@ funHDDC  <-
   else if (model=='AKJBQKDK') m <- ro+tot+D+1
   else if (model=='AKBQKDK') m <- ro+tot+K+1
   else if (model=='ABQKDK') m <- ro+tot+2
-  else if (model=='AKJBKQKD') m <- ro+K*(to+d+1)+1
-  else if (model=='AKBKQKD') m <- ro+K*(to+2)+1
-  else if (model=='ABKQKD') m <- ro+K*(to+1)+2
-  else if (model=='AKJBQKD') m <- ro+K*(to+d)+2
-  else if (model=='AKBQKD') m <- ro+K*(to+1)+2
-  else if (model=='ABQKD') m <- ro+K*to+3
-  else if (model=='AJBQD') m <- ro+to+d+2
-  else if (model=='ABQD') m <- ro+to+3
 
   return(m)
 }

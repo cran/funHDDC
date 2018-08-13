@@ -5,25 +5,21 @@
   \method{predict}{funHDDC}(object,newdata,...)
 }
 \description{
-  Prediction for a new functional dataset using a funHDDC model previously trained.
+  It provides predictions for a new functional dataset using the funHDDC model you train.
 }
 \arguments{
   \item{object}{An object produced by funHDDC function}
   \item{newdata}{In the univariate case: a functional data object produced by the fda package, in the multivariate     case: a list of functional data objects, for which you want to predict the group membership from the model.}
-  \item{...}{Arguments to be passed to methods, such as graphical parameters.}
+  \item{...}{Additional parameters to pass to subfunctions.}
   }
-\value{
+    \value{
     \item{class}{The clustering partition.}
     \item{t}{The probability of each individual to belong to each cluster.}
     \item{L}{The loglikelihood.}
-}
-\references{
-- C. Bouveyron and J. Jacques, Model-based Clustering of Time Series in Group-specific Functional Subspaces, Advances in Data Analysis and Classification, vol. 5 (4), pp. 281-300, 2011.
-- A. Schmutz, C. Bouveyron, J. Jacques, L. Cheze and  P. Martin, Clustering multivariate functional data in group-specic functional subspaces, Preprint HAL 01652467, Université Côte d'Azur, 2017.
-}
+
+    }
 \examples{
-##Univariate example
-    library(fda)
+    ##Univariate example
     data("trigo")
     basis<- create.bspline.basis(c(0,1), nbasis=25)
     z<-sample(1:100,0.8*100,replace=FALSE)
@@ -35,8 +31,7 @@
     model<-funHDDC(var1_train,K=2)
     pred<-predict(model,var1_test)
 
-##Multivariate example
-    library(fda)
+    ##Multivariate example
     data("triangle")
     basis<- create.bspline.basis(c(1,21), nbasis=25)
     z<-sample(1:100,0.8*100,replace=FALSE)
@@ -52,11 +47,8 @@
     model<-funHDDC(list(var1_train,var2_train),K=3)
     pred<-predict(model,list(var1_test,var2_test))
 
-\donttest{
-    #Another example on Canadian data
-    library(fda)
-
-    #Clustering the "Canadian temperature" data (Ramsey & Silverman): univariate case
+  \donttest{
+    ##Clustering the "Canadian temperature" data (Ramsey & Silverman): univariate case
     daybasis65 <- create.fourier.basis(c(0, 365), nbasis=65, period=365)
     z<-sample(1:35,0.9*35,replace=FALSE)
     daytempfd_train <- smooth.basis(day.5, CanadianWeather$dailyAv[,z,"Temperature.C"],
@@ -68,7 +60,7 @@
     pred<-predict.funHDDC(model,daytempfd_test)
 
 
-    #Clustering the "Canadian temperature" data (Ramsey & Silverman): multivariate case
+    ##Clustering the "Canadian temperature" data (Ramsey & Silverman): multivariate case
     daybasis65 <- create.fourier.basis(c(0, 365), nbasis=65, period=365)
     z<-sample(1:35,0.9*35,replace=FALSE)
     daytempfd_train <- smooth.basis(day.5, CanadianWeather$dailyAv[,z,"Temperature.C"],
@@ -82,5 +74,5 @@
 
     model<-funHDDC(list(daytempfd_train,dayprecfd_train),K=3)
     pred<-predict.funHDDC(model,list(daytempfd_test,dayprecfd_test))
-}
     }
+}

@@ -56,7 +56,7 @@ plot.mfpca<-function(x,nharm=3,threshold=0.05,...){
     for (k in 1:nharm){
       if (mfpcaobj$varprop[k]<threshold) break
       xax<-paste('Dimension',k, ", Proportion of variance:",round(mfpcaobj$varprop[k],2) ,sep=" ")
-      plot(t,fdmat[,k],main=xax,xlab="x",ylab="y",type="l",...)
+      plot(t,fdmat[,k],main=xax,xlab="x",ylab="y",type="l")
     }
 
   }else if (length(mfpcaobj$call[[2]])>1){
@@ -67,7 +67,7 @@ plot.mfpca<-function(x,nharm=3,threshold=0.05,...){
     for (n in 2:d){
       data_obj<-get(v[[n]])
       m<-paste(v[[n]],"plot",sep=" ")
-      plot(data_obj,main=m,...)
+      plot(data_obj,main=m)
 
     }
 

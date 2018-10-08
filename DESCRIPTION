@@ -2,16 +2,18 @@ Package: funHDDC
 Type: Package
 Title: Univariate and Multivariate Model-Based Clustering in
         Group-Specific Functional Subspaces
-Version: 2.1.0
+Version: 2.2.0
 Author: A Schmutz, J. Jacques & C. Bouveyron
 Maintainer: Charles Bouveyron <charles.bouveyron@gmail.com>
-Depends: MASS,fda, R (>= 3.1.0)
-Description: The funHDDC algorithm (Schmutz et al., 2017) allows to cluster functional univariate or multivariate data by modeling each group within a specific functional subspace.
+Depends: MASS,fda,R (>= 3.1.0)
+Description: The funHDDC algorithm (Schmutz et al., 2018) allows to cluster functional univariate or multivariate data by modeling each group within a specific functional subspace.
 License: GPL-2
 Encoding: UTF-8
 LazyData: false
 RoxygenNote: 6.0.1
+Suggests: knitr, rmarkdown
+VignetteBuilder: knitr
 NeedsCompilation: no
-Packaged: 2018-08-13 08:02:31 UTC; bouveyro
+Packaged: 2018-10-08 20:55:08 UTC; bouveyro
 Repository: CRAN
-Date/Publication: 2018-08-13 08:50:03 UTC
+Date/Publication: 2018-10-08 21:30:03 UTC

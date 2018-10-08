@@ -3,7 +3,7 @@
 \alias{triangle}
 %- Also NEED an '\alias' for EACH other topic documented here.
 \title{
-Simulated functional bivariate dataset.
+Simulated functional bivariate dataset
 }
 \description{
 A simulated dataset of bivariate functional data from 3 groups.

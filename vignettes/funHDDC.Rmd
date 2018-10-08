@@ -1,0 +1,134 @@
+---
+title: "funHDDC"
+author: "Amandine Schmutz, Charles Bouveyron & Julien Jacques"
+date: "`21.08.2018`"
+output: rmarkdown::html_vignette
+
+vignette: >
+  %\VignetteIndexEntry{funHDDC}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+# Description
+The funHDDC algorithm (Schmutz et al., 2018) allows to cluster functional univariate or multivariate data by modeling each group within a specific functional subspace.
+
+# Load package
+```{r eval=FALSE}
+library(funHDDC)
+```
+
+# Data
+We are going to work on the Canadian Temperature data available in the fda package. It gathers temperature and pluviometry of 35 Canadian cities for one year.
+```{r}
+library(fda)
+daybasis65 <- create.fourier.basis(c(0, 365), nbasis=65, period=365)
+daytempfd <- smooth.basis(day.5, CanadianWeather$dailyAv[,,"Temperature.C"], daybasis65,fdnames=list("Day", "Station", "Deg C"))$fd
+dayprecfd<-smooth.basis(day.5, CanadianWeather$dailyAv[,,"Precipitation.mm"], daybasis65,fdnames=list("Day", "Station", "Mm"))$fd
+```
+
+# Example of Clustering univariate functional data
+In this first part we are going to cluster data according to one functional variable: the temperature for one year.
+
+## Basic code example
+```{r}
+library(funHDDC)
+res.uni<-funHDDC(daytempfd,K=3,model="AkBkQkDk",init="random",threshold=0.2)
+```
+It prints the name of the model tested and the options chosen for the algorithm (K and the threshold for the scree test of Cattell), the complexity of the model chosen (i.e. the number of free model parameters) and the BIC value useful for model selection. It also prints the name of the best model according to the BIC criterion (in this example we test one model only so it is the same than the one tested).
+
+Then you can plot the temperature curves colored by group.
+```{r fig.width=6, fig.height=4}
+plot(daytempfd,col=res.uni$class)
+```
+## Selection of the number of clusters
+You can use the BIC criterion in order to choose the best partition.
+```{r}
+res.classif<-funHDDC(daytempfd,K=2:10,model="AkjBkQkDk")
+```
+The model does not converge for all partitions. The model stored in res.classif is the best one according to the BIC criterion.
+
+# Example of clustering bivariate functional data
+In this part we are going to cluster data according to 2 functional variables: temperature and pluviometry in order to highlight different type of cities.
+
+## Basic code example
+
+The kmeans initialization allows to speed up convergence of the model.
+```{r}
+res.multi<-funHDDC(list(daytempfd,dayprecfd),K=4,model="AkBkQkDk",init="kmeans",threshold=0.2)
+```
+Then you can plot the temperature curves and the precipitation curves colored by group.
+```{r fig.width=6, fig.height=4 }
+plot(daytempfd,col=c("black","red","#009933","#FFCC00")[res.multi$class],ylab="Temperature (Deg C)")
+plot(dayprecfd,col=c("black","red","#009933","#FFCC00")[res.multi$class],ylab="Precipitation (mm)")
+```
+
+## Selection of the number of clusters
+
+As in the previous example you can select the best partition with the BIC criterion or you can use the slope heuristic criterion. A comparision of those two criteria is provided in Schmutz et al. (2018).
+
+In this example we will test multiple number of clusters in order to see which partition is the best for data.
+```{r}
+res.classif<-funHDDC(list(daytempfd,dayprecfd),K=2:8,model="AkBkQkDk",init="kmeans")
+```
+According to the BIC, the best model is the one with 4 clusters. 
+With the slope heuristic :
+```{r}
+slopeHeuristic(res.classif)
+```
+The slopeHeuristic function provides 2 graphics, the first one show the maximum log-likelihood with regard to the free model parameters for each partition. The red line is estimated using a robust linear regression and its coefficient is used to compute the penalized log-likelihood function shown on the right plot. 
+In this example the slope heuristic suggests 2 clusters. It is not the best criterion to use because there is not a great number of partitions to test, so the log-likelihood does not reach a plateau. It is this plateau that we want to estimate with the linear regression (see Bouveyron et al (2015) for an example of a perfect graph).
+
+## Model selection
+funHDDC proposes 6 differents models, more or less parcimonious. Refer to Schmutz et al.(2018) for the interpretation of each model.  As in the number of groups selection you can also use the BIC or the slope heuristic criterion to select the best model for your data. 
+In this case wa are going to test all models in order to select the best one for data. In order to do that, you need to list all models you want to test as shown below:
+```{r}
+mult.model<-funHDDC(list(daytempfd,dayprecfd),K=4,model=c("AkjBkQkDk","AkjBQkDk","AkBkQkDk","AkBQkDk","ABkQkDk","ABQkDk"))
+```
+The second to last line of the output indicates the best model according to the BIC.
+If you choose the slope heuristic, the number on the x axis correspond to the number of the model written on the left of the table provided in funHDDC output (above).
+```{r}
+slopeHeuristic(mult.model)
+```
+
+
+##Multiple iterations of the funHDDC algorithm
+funHDDC function uses the EM algorithm for parameter estimation, this algorithm can reach sometimes some local maxima, that is why you may not find exactly the same result if you run the same code multiple times. So it is highly recommended to do multiple initialisations of the EM algorithm and choose the solution which maximizes the log-likelihood.
+By default, 20 initialisations of the EM algorithm are automatically done with the random initialization, and only the solution which maximizes the log-likelihood is displayed. If you want to increase the number of initialization or to do multiple initialisation for the kmeans initialisation, you have to use the nb.rep option.
+```{r eval=FALSE}
+multiple.init<-funHDDC(list(daytempfd,dayprecfd),K=4,init="kmeans",nb.rep=10)
+```
+
+#Functional Principal Component Analysis
+Functional principal component analysis is one of the best known technique to do a first exploration of a functional dataset.
+
+##Univariate case
+
+```{r fig.width=8}
+res.pca<-mfpca(daytempfd)
+plot.mfpca(res.pca)
+```
+
+The first plot corresponds to the smooth curves. The next plots are the scores projection on the 3 first dimensions (default value). Then there are the variation of mean curve (see Ramsay & Silvermann (2005) for a detailed interpretation). To end, there are the representation of the variation of the first two eigenfunctions.
+
+##Multivariate case
+For the multivariate case, harmonics are build based on all functional variables. Then, except for scores plots, plots are displayed for each variable taken one by one. 
+```{r fig.width=8}
+res.pca<-mfpca(list(daytempfd,dayprecfd))
+plot.mfpca(res.pca)
+```
+
+The first plot corresponds to the smooth curves. The next plots are the scores projection on the 3 first dimensions (default value). Then there are the variation of mean curve (see Ramsay & Silvermann (2005) for a detailed interpretation). To end, there are the representation of the variation of the first two eigenfunctions.
+
+
+
+
+

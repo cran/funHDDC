@@ -1,6 +1,6 @@
 \name{funHDDC}
 \alias{funHDDC}
-\title{Univariate and Multivariate Model-Based Clustering in Group-Specific Functional Subspaces}
+\title{Clustering univariate and multivariate functional data in group-specific functional subspaces}
 \usage{
 funHDDC(data,K=1:10,model="AkjBkQkDk",threshold=0.2,itermax=200,eps=1e-6,init="kmeans",
 criterion="bic",algo='EM', d_select="Cattell", init.vector=NULL, show=TRUE,
@@ -8,12 +8,12 @@ mini.nb=c(5, 10),min.individuals=2, mc.cores=1, nb.rep=1, keepAllRes=TRUE,
 kmeans.control = list(), d_max=100)
 }
 \description{
-The funHDDC algorithm allows to cluster functional univariate and multivariate
-data by modeling each cluster within a specific functional subspace.See (Schmutz et al, 2017) for details on the parameters described below.
+It provides the funHDDC algorithm which allows to cluster functional univariate and multivariate
+data by modeling each cluster within a specific functional subspace. See (Schmutz et al, 2018) for details on the parameters described below.
 }
 \arguments{
     \item{data}{In the univariate case: a functional data object produced by the fda package, in the multivariate     case: a list of functional data objects.}
-    \item{K}{The number of clusters, you can test one partition or multiple partitions at the same time with ':'}
+    \item{K}{The number of clusters, you can test one partition or multiple partitions at the same time, for example K=2:10.}
     \item{model}{The chosen model among 'AkjBkQkDk', 'AkjBQkDk', 'AkBkQkDk', 'ABkQkDk', 'AkBQkDk', 'ABQkDk'.          'AkjBkQkDk' is the default. You can test multiple models at the same time with the command c(). For example c("AkjBkQkDk","AkjBQkDk").}
     \item{threshold}{The threshold of the Cattell' scree-test used for selecting the group-specific intrinsic         dimensions.}
     \item{itermax}{The maximum number of iterations.}
@@ -32,10 +32,10 @@ data by modeling each cluster within a specific functional subspace.See (Schmutz
     probabilities. The value of 'min.individuals' cannot be lower than 2.}
     \item{mc.cores}{Positive integer, default is 1. If mc.cores>1, then parallel computing is used, using mc.cores     cores. Warning for Windows users only: the parallel computing can sometimes be slower than using one single        core (due to how parLapply works).}
     \item{nb.rep}{A positive integer (default is 1 for kmeans initialization and 20 for random initialization).        Each estimation (i.e. combination of (model, K, threshold)) is repeated nb.rep times and only the estimation       with the highest log-likelihood is kept.}
-    \item{keepAllRes}{Logical. Should the results of all runs be kept? If so, an argument all_results is created in     the results. Default isTRUE.}
+    \item{keepAllRes}{Logical. Should the results of all runs be kept? If so, an argument all_results is created in     the results. Default is TRUE.}
     \item{kmeans.control}{A list. The elements of this list should match the parameters of the kmeans
     initialization (see kmeans help for details). The parameters are “iter.max”, “nstart” and “algorithm”.}
-    \item{d_max}{A positive integer. The maximum number of dimensions to be computed. Default is 100. It means that     the instrinsic dimension of any cluster cannot be larger than dmax. It quickens a lot the algorithm for            datasets with a large number of variables (e.g. thousands).}
+    \item{d_max}{A positive integer. The maximum number of dimensions to be computed. Default is 100. It means that     the instrinsic dimension of any cluster cannot be larger than d_max. It quickens a lot the algorithm for            datasets with a large number of variables (e.g. thousands).}
 
 }
 \value{
@@ -51,12 +51,13 @@ data by modeling each cluster within a specific functional subspace.See (Schmutz
   \item{BIC}{The BIC value.}
   \item{ICL}{The ICL value.}
   \item{complexity}{the number of parameters that are estimated.}
+  \item{all_results}{if multiple number of clusters are tested or multiple models, results of each models are stored here}
 
 }
 \details{
-If you choose init="random", the algorithm is run 20 times with the same model options and the solution which maximises the log-likelihood is printed.This explains why sometimes with this initialization it runs a bit slower than with 'kmeans' initialization.
+If you choose init="random", the algorithm is run 20 times with the same model options and the solution which maximises the log-likelihood is printed. This explains why sometimes with this initialization it runs a bit slower than with 'kmeans' initialization.
 
-If the Warning message : "In funHDDC(...) : All models diverged" is printed, it means that the algorithm found less classes that the number you choose (parameter K). Because of the EM algorithm, it should be because of a bad initialization of the EM algorithm. So you have to restart the algorithm multiple times in order to check if, with a new initialization of the EM algorithm the model converges, or if there is no solution with the number K you choose.
+If the warning message: "In funHDDC(...) : All models diverged" is printed, it means that the algorithm found less classes that the number you choose (parameter K). Because of the EM algorithm, it should be because of a bad initialization of the EM algorithm. So you have to restart the algorithm multiple times in order to check if, with a new initialization of the EM algorithm the model converges, or if there is no solution with the number K you choose.
 
 The different initializations are:
 \describe{
@@ -93,63 +94,68 @@ par(mfrow=c(1,2))
 plot(var1,col=res.multi$class)
 plot(var2,col=res.multi$class)
 
-\donttest{
+
+##NOT RUN:
 ##You can test multiple number of groups at the same time
-data("trigo")
-basis<- create.bspline.basis(c(0,1), nbasis=25)
-var1<-smooth.basis(argvals=seq(0,1,length.out = 100),y=t(trigo[,1:100]),fdParobj=basis)$fd
-res.uni<-funHDDC(var1,K=2:4,model="AkBkQkDk",init="kmeans",threshold=0.2)
+#data("trigo")
+#basis<- create.bspline.basis(c(0,1), nbasis=25)
+#var1<-smooth.basis(argvals=seq(0,1,length.out = 100),y=t(trigo[,1:100]),fdParobj=basis)$fd
+#res.uni<-funHDDC(var1,K=2:4,model="AkBkQkDk",init="kmeans",threshold=0.2)
 
 ##You can test multiple models at the same time
-data("trigo")
-basis<- create.bspline.basis(c(0,1), nbasis=25)
-var1<-smooth.basis(argvals=seq(0,1,length.out = 100),y=t(trigo[,1:100]),fdParobj=basis)$fd
-res.uni<-funHDDC(var1,K=3,model=c("AkjBkQkDk","AkBkQkDk"),init="kmeans",threshold=0.2)
+#data("trigo")
+#basis<- create.bspline.basis(c(0,1), nbasis=25)
+#var1<-smooth.basis(argvals=seq(0,1,length.out = 100),y=t(trigo[,1:100]),fdParobj=basis)$fd
+#res.uni<-funHDDC(var1,K=3,model=c("AkjBkQkDk","AkBkQkDk"),init="kmeans",threshold=0.2)
+
+
+##another example on Canadian data
 
 ###Clustering the "Canadian temperature" data (Ramsey & Silverman): univariate case
-daybasis65 <- create.fourier.basis(c(0, 365), nbasis=65, period=365)
-daytempfd <- smooth.basis(day.5, CanadianWeather$dailyAv[,,"Temperature.C"], daybasis65,
-             fdnames=list("Day", "Station", "Deg C"))$fd
+#daybasis65 <- create.fourier.basis(c(0, 365), nbasis=65, period=365)
+#daytempfd <- smooth.basis(day.5, CanadianWeather$dailyAv[,,"Temperature.C"], daybasis65,
+#    fdnames=list("Day", "Station", "Deg C"))$fd
 
-res.uni<-funHDDC(daytempfd,K=3,model="AkjBkQkDk",init="random",threshold=0.2)
+#res.uni<-funHDDC(daytempfd,K=3,model="AkjBkQkDk",init="random",threshold=0.2)
 
 ##Graphical representation of groups mean curves
-select1<-fd(daytempfd$coefs[,which(res.uni$class==1)],daytempfd$basis)
-select2<-fd(daytempfd$coefs[,which(res.uni$class==2)],daytempfd$basis)
-select3<-fd(daytempfd$coefs[,which(res.uni$class==3)],daytempfd$basis)
+#select1<-fd(daytempfd$coefs[,which(res.uni$class==1)],daytempfd$basis)
+#select2<-fd(daytempfd$coefs[,which(res.uni$class==2)],daytempfd$basis)
+#select3<-fd(daytempfd$coefs[,which(res.uni$class==3)],daytempfd$basis)
 
-plot(mean.fd(select1),col="lightblue",ylim=c(-20,20),lty=1,lwd=3)
-lines(mean.fd(select2),col="palegreen2",lty=1,lwd=3)
-lines(mean.fd(select3),col="navy",lty=1,lwd=3)
+#plot(mean.fd(select1),col="lightblue",ylim=c(-20,20),lty=1,lwd=3)
+#lines(mean.fd(select2),col="palegreen2",lty=1,lwd=3)
+#lines(mean.fd(select3),col="navy",lty=1,lwd=3)
 
 
 ###Clustering the "Canadian temperature" data (Ramsey & Silverman): multivariate case
-daybasis65 <- create.fourier.basis(c(0, 365), nbasis=65, period=365)
-daytempfd <- smooth.basis(day.5, CanadianWeather$dailyAv[,,"Temperature.C"], daybasis65,
-    fdnames=list("Day", "Station", "Deg C"))$fd
-dayprecfd<-smooth.basis(day.5, CanadianWeather$dailyAv[,,"Precipitation.mm"], daybasis65,
-    fdnames=list("Day", "Station", "Mm"))$fd
+#daybasis65 <- create.fourier.basis(c(0, 365), nbasis=65, period=365)
+#daytempfd <- smooth.basis(day.5, CanadianWeather$dailyAv[,,"Temperature.C"], daybasis65,
+#    fdnames=list("Day", "Station", "Deg C"))$fd
+#dayprecfd<-smooth.basis(day.5, CanadianWeather$dailyAv[,,"Precipitation.mm"], daybasis65,
+#    fdnames=list("Day", "Station", "Mm"))$fd
 
-res.multi<-funHDDC(list(daytempfd,dayprecfd),K=3,model="AkjBkQkDk",init="random",threshold=0.2)
+#res.multi<-funHDDC(list(daytempfd,dayprecfd),K=3,model="AkjBkQkDk",init="random",threshold=0.2)
 
 ##Graphical representation of groups mean curves
 ##Temperature
-select1<-fd(daytempfd$coefs[,which(res.multi$class==1)],daytempfd$basis)
-select2<-fd(daytempfd$coefs[,which(res.multi$class==2)],daytempfd$basis)
-select3<-fd(daytempfd$coefs[,which(res.multi$class==3)],daytempfd$basis)
+#select1<-fd(daytempfd$coefs[,which(res.multi$class==1)],daytempfd$basis)
+#select2<-fd(daytempfd$coefs[,which(res.multi$class==2)],daytempfd$basis)
+#select3<-fd(daytempfd$coefs[,which(res.multi$class==3)],daytempfd$basis)
 
-plot(mean.fd(select1),col="lightblue",ylim=c(-20,20),lty=1,lwd=3)
-lines(mean.fd(select2),col="palegreen2",lty=1,lwd=3)
-lines(mean.fd(select3),col="navy",lty=1,lwd=3)
+#plot(mean.fd(select1),col="lightblue",ylim=c(-20,20),lty=1,lwd=3)
+#lines(mean.fd(select2),col="palegreen2",lty=1,lwd=3)
+#lines(mean.fd(select3),col="navy",lty=1,lwd=3)
 
 ##Precipitation
-select1b<-fd(dayprecfd$coefs[,which(res.multi$class==1)],dayprecfd$basis)
-select2b<-fd(dayprecfd$coefs[,which(res.multi$class==2)],dayprecfd$basis)
-select3b<-fd(dayprecfd$coefs[,which(res.multi$class==3)],dayprecfd$basis)
+#select1b<-fd(dayprecfd$coefs[,which(res.multi$class==1)],dayprecfd$basis)
+#select2b<-fd(dayprecfd$coefs[,which(res.multi$class==2)],dayprecfd$basis)
+#select3b<-fd(dayprecfd$coefs[,which(res.multi$class==3)],dayprecfd$basis)
 
-plot(mean.fd(select1b),col="lightblue",ylim=c(0,5),lty=1,lwd=3)
-lines(mean.fd(select2b),col="palegreen2",lty=1,lwd=3)
-lines(mean.fd(select3b),col="navy",lty=1,lwd=3)
-}
+#plot(mean.fd(select1b),col="lightblue",ylim=c(0,5),lty=1,lwd=3)
+#lines(mean.fd(select2b),col="palegreen2",lty=1,lwd=3)
+#lines(mean.fd(select3b),col="navy",lty=1,lwd=3)
+
+
 }
 

@@ -22,6 +22,7 @@
 
 }
 \examples{
+  library(fda)
 
   ####Univariate case: "Canadian temperature" data (Ramsey & Silverman)
   daybasis65 <- create.fourier.basis(c(0, 365), nbasis=65, period=365)

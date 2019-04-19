@@ -18,6 +18,7 @@
     This function works for model selection. If you test one model (for example AkjBQkDk) and multiple clusters, the function returns the number of clusters selected by slope heuristic. If you test multiple models (for example all 6 models) and one or multiple values of clusters, the function returns the rank of the best model selected by slope heuristic. The rank is the first column of the output provided by funHDDC function.
     }
     \examples{
+    library(fda)
 
     ##Univariate example: multiple clusters, one model tested
     data("trigo")
@@ -31,21 +32,20 @@
     basis<- create.bspline.basis(c(0,1), nbasis=25)
     var1<-smooth.basis(argvals=seq(0,1,length.out = 100),y=t(trigo[,1:100]),fdParobj=basis)$fd
     res.uni<-funHDDC(var1,K=2,model=c("AkjBkQkDk","AkjBQkDk","AkBkQkDk",
-                      "AkBQkDk","ABkQkDk","ABQkDk"))
+    "AkBQkDk","ABkQkDk","ABQkDk"))
     slopeHeuristic(res.uni)
-    
-    ##NOT RUN:
-    ##Multivariate example
-    #data("triangle")
-    #basis <- create.bspline.basis(c(1,21), nbasis=25)
-    #var1<-smooth.basis(argvals=seq(from=1,to=21,length.out = 101),y=t(triangle[,1:101]),
-    #                    fdParobj=basis)$fd
-    #var2<-smooth.basis(argvals=seq(from=1,to=21,length.out = 101),y=t(triangle[,102:202]),
-    #                    fdParobj=basis)$fd
-    #res.multi<-funHDDC(list(var1,var2),K=2:10,model="AkjBQkDk")
-    #slopeHeuristic(res.multi)
 
-    ##An other example on Canada dataset
+    ##Multivariate example
+    data("triangle")
+    basis <- create.bspline.basis(c(1,21), nbasis=25)
+    var1<-smooth.basis(argvals=seq(from=1,to=21,length.out = 101),y=t(triangle[,1:101]),
+                        fdParobj=basis)$fd
+    var2<-smooth.basis(argvals=seq(from=1,to=21,length.out = 101),y=t(triangle[,102:202]),
+                        fdParobj=basis)$fd
+    res.multi<-funHDDC(list(var1,var2),K=2:10,model="AkjBQkDk")
+    slopeHeuristic(res.multi)
+
+    ##NOT RUN: an other example on Canada dataset
     #library(fda)
 
     ##Clustering the "Canadian temperature" data (Ramsey & Silverman): univariate case

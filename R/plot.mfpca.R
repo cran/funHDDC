@@ -25,7 +25,7 @@ plot.mfpca<-function(x,nharm=3,threshold=0.05,...){
     nbas<-mfpcaobj$harmonics$basis$nbasis
 
     #Mean variations
-    t=seq(range[1],range[2],length=nbas)
+    t=seq(range[1],range[2],length=(10*nbas))
     mean_function_values<-cbind(eval.fd(t,mfpcaobj$meanfd),t)
     fdmat<-eval.fd(t,mfpcaobj$harmonic)
     for (i in 1:nharm){
@@ -86,7 +86,7 @@ plot.mfpca<-function(x,nharm=3,threshold=0.05,...){
     nbas<-mfpcaobj$harmonics$basis$nbasis
 
     ##Mean variations
-    t=seq(range[1],range[2],length=(nbas))
+    t=seq(range[1],range[2],length=10*nbas)
 
     for (m in 0:(nvar-1)){
       mean_function_values<-cbind(eval.fd(t,fd(mfpcaobj$meanfd[[(m+1)]]$coefs,mfpcaobj$meanfd[[(m+1)]]$basis)),t)

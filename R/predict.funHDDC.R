@@ -1,4 +1,4 @@
-predict.funHDDC<-function(object,newdata, ...){
+predict.funHDDC<-function(object,newdata,...){
   model=object
   if (class(newdata)!='list') {x = t(newdata$coefs)
   }else {x = t(newdata[[1]]$coefs); for (i in 2:length(newdata)) x = cbind(x,t(newdata[[i]]$coefs))}

@@ -9,9 +9,9 @@
 }
 \arguments{
   \item{object}{An object produced by funHDDC function}
-  \item{newdata}{In the univariate case: a functional data object produced by the fda package, in the multivariate case: a list of functional data objects, for which you want to predict the group membership from the model.}
+  \item{newdata}{In the univariate case: a functional data object produced by the fda package, in the multivariate     case: a list of functional data objects, for which you want to predict the group membership from the model.}
   \item{...}{Some additional parameters.}
-}
+  }
     \value{
     \item{class}{The clustering partition.}
     \item{t}{The probability of each individual to belong to each cluster.}
@@ -20,8 +20,11 @@
     }
 \examples{
 ##Univariate example
+    library(fda)
     data("trigo")
     basis<- create.bspline.basis(c(0,1), nbasis=25)
+    suppressWarnings(RNGversion("3.5.0"))
+    set.seed(1)
     z<-sample(1:100,0.8*100,replace=FALSE)
     var1_train<-smooth.basis(argvals=seq(0,1,length.out = 100),y=t(trigo[z,1:100]),
                              fdParobj=basis)$fd
@@ -32,8 +35,11 @@
     pred<-predict(model,var1_test)
 
 ##Multivariate example
+    library(fda)
     data("triangle")
     basis<- create.bspline.basis(c(1,21), nbasis=25)
+    suppressWarnings(RNGversion("3.5.0"))
+    set.seed(1)
     z<-sample(1:100,0.8*100,replace=FALSE)
     var1_train<-smooth.basis(argvals=seq(1,21,length.out = 101),y=t(triangle[z,1:101]),
                               fdParobj=basis)$fd
@@ -48,6 +54,7 @@
     pred<-predict(model,list(var1_test,var2_test))
 
 ##NOT RUN: another example on Canadian data
+    #library(fda)
 
     ##Clustering the "Canadian temperature" data (Ramsey & Silverman): univariate case
     daybasis65 <- create.fourier.basis(c(0, 365), nbasis=65, period=365)

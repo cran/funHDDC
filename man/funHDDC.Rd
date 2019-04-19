@@ -8,8 +8,7 @@ mini.nb=c(5, 10),min.individuals=2, mc.cores=1, nb.rep=1, keepAllRes=TRUE,
 kmeans.control = list(), d_max=100)
 }
 \description{
-It provides the funHDDC algorithm which allows to cluster functional univariate and multivariate
-data by modeling each cluster within a specific functional subspace. See (Schmutz et al, 2018) for details on the parameters described below.
+The funHDDC algorithm  allows to cluster functional univariate (Bouveyron and Jacques, 2011, <doi:10.1007/s11634-011-0095-6>) or multivariate data (Schmutz et al., 2018) by modeling each group within a specific functional subspace.
 }
 \arguments{
     \item{data}{In the univariate case: a functional data object produced by the fda package, in the multivariate     case: a list of functional data objects.}
@@ -71,10 +70,16 @@ The different initializations are:
 Note that the BIC criterion used in this function is to be maximized and is defined as 2*LL-k*log(n) where LL is the log-likelihood, k is the number of parameters and n is the number of observations.
 
 }
+
+\references{
+- C.Bouveyron and J.Jacques, Model-based Clustering of Time Series in Group-specific Functional Subspaces, Advances in Data Analysis and Classification, vol. 5 (4), pp. 281-300, 2011 <doi:10.1007/s11634-011-0095-6>
+
+- C. Bouveyron, L. Cheze, J. Jacques, P. Martin and A. Schmutz, Clustering multivariate functional data in group-specic functional subspaces, Preprint HAL 01652467, 2017.
+}
+
 \examples{
-
-
 ##Univariate example
+library(fda)
 data("trigo")
 basis<- create.bspline.basis(c(0,1), nbasis=25)
 var1<-smooth.basis(argvals=seq(0,1,length.out = 100),y=t(trigo[,1:100]),fdParobj=basis)$fd
@@ -84,6 +89,7 @@ plot(var1,col=res.uni$class)
 
 
 ##Multivariate example
+library(fda)
 data("triangle")
 basis<- create.bspline.basis(c(1,21), nbasis=25)
 var1<-smooth.basis(argvals=seq(1,21,length.out = 101),y=t(triangle[,1:101]),fdParobj=basis)$fd
@@ -110,6 +116,7 @@ plot(var2,col=res.multi$class)
 
 
 ##another example on Canadian data
+#library(fda)
 
 ###Clustering the "Canadian temperature" data (Ramsey & Silverman): univariate case
 #daybasis65 <- create.fourier.basis(c(0, 365), nbasis=65, period=365)

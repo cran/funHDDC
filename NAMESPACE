@@ -1,7 +1,7 @@
 exportPattern("^[^\\.]")
 import(fda, MASS)
-importFrom("graphics", "abline", "lines", "par", "plot", "points","text")
+importFrom("graphics", "abline", "lines", "par", "plot", "points","text","title")
 importFrom("stats", "kmeans", "rmultinom")
-
 S3method(plot,mfpca)
 S3method(predict,funHDDC)
+S3method(plot,fd)

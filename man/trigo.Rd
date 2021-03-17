@@ -8,7 +8,7 @@
   A simulated dataset of univariate functional data from 2 groups.
 }
 \usage{
-  trigo
+  data(trigo)
 }
 \format{
   A dataframe with 100 lines and 101 columns. A row represents a curve and a column a sampling point.

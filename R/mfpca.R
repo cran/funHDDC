@@ -49,9 +49,20 @@ mfpca <- function(fdobj,center=TRUE){
     for (i in 2:length(fdobj)){
       coef<-cbind(coef,t(fdobj[[i]]$coefs))
     }
-
-    mat_interm<-1/sqrt(ncol(fdobj[[1]]$coefs)-1)*coef%*%chol(W_tot,pivot=TRUE)
-    cov<-t(mat_interm)%*%mat_interm
+    
+    #Début partie mise en commentaire
+    #mat_interm<-1/sqrt(ncol(fdobj[[1]]$coefs)-1)*coef%*%chol(W_tot,pivot=TRUE)
+    #cov<-t(mat_interm)%*%mat_interm
+    #Fin partie mise en commentaire
+    
+    #Début correction
+    #Construction matrice triangulaire de Choleski
+    W_m <-  chol(W_tot)
+    #Matrice de covariance 
+    mat_cov <- crossprod(coef)/(ncol(fdobj[[1]]$coefs)-1)
+    cov = W_m %*% mat_cov %*% t(W_m)
+    #Fin correction
+    
     valeurs<-Eigen(cov)
     valeurs_propres<-valeurs$values
     vecteurs_propres<-valeurs$vectors
@@ -78,10 +89,22 @@ mfpca <- function(fdobj,center=TRUE){
     W<-inprod(fdobj$basis,fdobj$basis)
     #To avoid numerical issues, the smallest inner product are set to 0
     W[W<1e-15]=0
-
+    
     coef<-t(fdobj$coefs)
-    mat_interm<-1/sqrt(ncol(fdobj$coefs)-1)*coef%*%chol(W)
-    cov<-t(mat_interm)%*%mat_interm
+    
+    #Début partie mise en commentaire
+    #mat_interm<-1/sqrt(ncol(fdobj$coefs)-1)*coef%*%chol(W)
+    #cov<-t(mat_interm)%*%mat_interm
+    #Fin partie mise en commentaire
+    
+    #Début correction
+    #Construction matrice triangulaire de Choleski
+    W_m <-  chol(W)
+    #Matrice de covariance 
+    mat_cov <- crossprod(coef)/(ncol(fdobj$coefs)-1)
+    cov = W_m %*% mat_cov %*% t(W_m)
+    #Fin correction
+    
     valeurs<-Eigen(cov)
     valeurs_propres<-valeurs$values
     vecteurs_propres<-valeurs$vectors

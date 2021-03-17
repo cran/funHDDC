@@ -20,7 +20,6 @@
     }
 \examples{
 ##Univariate example
-    library(fda)
     data("trigo")
     basis<- create.bspline.basis(c(0,1), nbasis=25)
     suppressWarnings(RNGversion("3.5.0"))
@@ -35,7 +34,6 @@
     pred<-predict(model,var1_test)
 
 ##Multivariate example
-    library(fda)
     data("triangle")
     basis<- create.bspline.basis(c(1,21), nbasis=25)
     suppressWarnings(RNGversion("3.5.0"))
@@ -54,8 +52,6 @@
     pred<-predict(model,list(var1_test,var2_test))
 
 ##NOT RUN: another example on Canadian data
-    #library(fda)
-
     ##Clustering the "Canadian temperature" data (Ramsey & Silverman): univariate case
     daybasis65 <- create.fourier.basis(c(0, 365), nbasis=65, period=365)
     #z<-sample(1:35,0.9*35,replace=FALSE)

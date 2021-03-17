@@ -532,21 +532,21 @@ funHDDC  <-
     for (i in 1:length(fdobj)){
       mean_fd[[i]]<-fdobj[[i]]
     }
-
+    
     #centrage des objets fonctionnels
     for (i in 1:length(fdobj)){
       coefmean <- apply(t(as.matrix(Ti) %*% matrix(1,1,nrow(fdobj[[i]]$coefs))) * fdobj[[i]]$coefs, 1, sum) / sum(Ti)
       fdobj[[i]]$coefs <- sweep(fdobj[[i]]$coefs, 1, coefmean)
       mean_fd[[i]]$coefs = as.matrix(data.frame(mean=coefmean))
     }
-
+    
     #Cr?ation des matrices des produits des bases de fonction
     for (i in 1:length(fdobj)){
       name<-paste('W_var',i,sep='')
       W_fdobj<-inprod(fdobj[[i]]$basis,fdobj[[i]]$basis)
       assign(name,W_fdobj)
     }
-
+    
     #Ajout des 0 ? gauche et ? droite des matrices W avant leur fusion en matrice phi
     prow<-dim(W_fdobj)[[1]]
     pcol<-length(fdobj)*prow
@@ -556,7 +556,7 @@ funHDDC  <-
       W2<-cbind(matrix(0,nrow=prow,ncol=(i-1)*ncol(W_fdobj)),get(paste('W_var',i,sep='')),matrix(0,nrow=prow,ncol=(pcol-i*ncol(W_fdobj))))
       W_list[[i-1]]<-W2
     }
-
+    
     #Cr?ation de la matrice phi
     W_tot<-rbind(W1,W_list[[1]])
     if (length(fdobj)>2){
@@ -565,16 +565,29 @@ funHDDC  <-
       }
     }
     W_tot[W_tot<1e-15]=0
-
+    
     #Cr?ation de la matrice de coef
     coef<-t(fdobj[[1]]$coefs)
     for (i in 2:length(fdobj)){
       coef<-cbind(coef,t(fdobj[[i]]$coefs))
     }
-
+    
     #mat_interm<-1/sqrt((sum(Ti)-1))*coef%*%(W_tot)^(1/2)
-    mat_interm<-1/sqrt((sum(Ti)))*coef%*%chol(W_tot,pivot=TRUE)
-    cov<-(.repmat(Ti,n=pcol,p=1)*t(mat_interm))%*%mat_interm
+    
+    #D?but Partie mise en commentaire
+    #mat_interm<-1/sqrt((sum(Ti)))*coef%*%chol(W_tot,pivot=TRUE)
+    #cov<-(.repmat(Ti,n=pcol,p=1)*t(mat_interm))%*%mat_interm
+    #Fin de partie mise en commentaire
+    
+    #D?but correction
+    #Construction matrice triangulaire de Choleski
+    W_m <-  chol(W_tot)
+    #Matrice de covariance 
+    mat_cov <- crossprod(t(.repmat(sqrt(Ti),n=dim(t(coef))[[1]],p=1)*t(coef)))/sum(Ti)
+    cov = W_m %*% mat_cov %*% t(W_m)
+    #Fin correction
+    
+    
     valeurs<-Eigen(cov)
     valeurs_propres<-valeurs$values
     vecteurs_propres<-valeurs$vectors
@@ -583,12 +596,12 @@ funHDDC  <-
     fonctionspropres<-fdobj[[1]]
     fonctionspropres$coefs<-bj
     scores<-coef%*%W_tot%*%bj
-
+    
     varprop<-valeurs_propres/sum(valeurs_propres)
-
+    
     pcafd<-list(valeurs_propres=valeurs_propres,harmonic=fonctionspropres,scores=scores,covariance=cov,U=bj,varprop=varprop,meanfd=mean_fd,W=W_tot)
-
-
+    
+    
   }else if (class(fdobj)!="list") {
     #Calcul de la moyenne par groupe
     mean_fd<-fdobj
@@ -596,7 +609,7 @@ funHDDC  <-
     coefmean <- apply(t(as.matrix(Ti) %*% matrix(1,1,nrow(fdobj$coefs))) * fdobj$coefs, 1, sum) / sum(Ti)
     fdobj$coefs <- sweep(fdobj$coefs, 1, coefmean)
     mean_fd$coefs = as.matrix(data.frame(mean=coefmean))
-
+    
     #Calcul de la matrice des produits scalaires
     W<-inprod(fdobj$basis,fdobj$basis)
     #pour ?viter les soucis num?riques on arrondit ? 0 les produits scalaires tr?s petits
@@ -604,8 +617,20 @@ funHDDC  <-
     #on centre les coefficients
     coef<-t(fdobj$coefs)
     #mat_interm<-1/sqrt((sum(Ti)-1))*coef%*%(W)^(1/2)
-    mat_interm<-1/sqrt((sum(Ti)))*coef%*%chol(W)
-    cov<-(.repmat(Ti,n=dim(W)[[1]],p=1)*t(mat_interm))%*%mat_interm
+    
+    #D?but partie mise en commentaire
+    #mat_interm<-1/sqrt((sum(Ti)))*coef%*%chol(W)
+    #cov<-(.repmat(Ti,n=dim(W)[[1]],p=1)*t(mat_interm))%*%mat_interm
+    #Fin de la partie mise en commentaire
+    
+    #D?but correction
+    #Construction matrice triangulaire de Choleski
+    W_m <-  chol(W)
+    #Matrice de covariance 
+    mat_cov <- crossprod(t(.repmat(sqrt(Ti),n=dim(t(coef))[[1]],p=1)*t(coef)))/sum(Ti)
+    cov = W_m %*% mat_cov %*% t(W_m)
+    #Fin correction
+    
     valeurs<-Eigen(cov)
     valeurs_propres<-valeurs$values
     vecteurs_propres<-valeurs$vectors
@@ -617,11 +642,11 @@ funHDDC  <-
     fonctionspropres$coefs<-bj
     #calcul des scores selon la formule de pca.fd
     scores<-inprod(fdobj,fonctionspropres)
-
+    
     varprop<-valeurs_propres/sum(valeurs_propres)
-
+    
     pcafd <-list(valeurs_propres=valeurs_propres,harmonic=fonctionspropres,scores=scores,covariance=cov,U=bj,meanfd=mean_fd,W=W)
-
+    
   }
   class(pcafd) <- "pca.fd"
   return(pcafd)

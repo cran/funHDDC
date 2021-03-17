@@ -9,7 +9,7 @@ Simulated functional bivariate dataset
 A simulated dataset of bivariate functional data from 3 groups.
 }
 \usage{
-triangle
+data(triangle)
 }
 %- maybe also 'usage' for other objects documented here.
 \format{

@@ -20,8 +20,6 @@ It provides graphical representations for MFPCA: smoothed data plots, scores plo
 \item{Eigenfunction plots}{ visualization of each eigenfunction/harmonic selected and depending on the threshold choosen.}
 }
 \examples{
-  library(fda)
-
   ####Univariate case: "Canadian temperature" data (Ramsey & Silverman)
   daybasis65 <- create.fourier.basis(c(0, 365), nbasis=65, period=365)
   daytempfd <- smooth.basis(day.5, CanadianWeather$dailyAv[,,"Temperature.C"], daybasis65,
